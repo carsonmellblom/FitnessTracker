@@ -1,0 +1,164 @@
+using FitnessTracker.Core.Entities;
+using FitnessTracker.Core.Interfaces;
+using Microsoft.AspNetCore.Mvc;
+
+namespace FitnessTracker.API.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class WorkoutTemplatesController : ControllerBase
+{
+    private readonly IWorkoutTemplateRepository _templateRepository;
+    private readonly ILogger<WorkoutTemplatesController> _logger;
+    private const int DefaultAthleteId = 1;
+
+    public WorkoutTemplatesController(IWorkoutTemplateRepository templateRepository, ILogger<WorkoutTemplatesController> logger)
+    {
+        _templateRepository = templateRepository;
+        _logger = logger;
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<WorkoutTemplateDto>>> GetTemplates()
+    {
+        var templates = await _templateRepository.GetAllAsync(DefaultAthleteId);
+        return Ok(templates.Select(MapToDto));
+    }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<WorkoutTemplateDto>> GetTemplate(int id)
+    {
+        var template = await _templateRepository.GetByIdAsync(id);
+        if (template == null) return NotFound();
+        return Ok(MapToDto(template));
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<WorkoutTemplateDto>> CreateTemplate(CreateWorkoutTemplateRequest request)
+    {
+        var template = new WorkoutTemplate
+        {
+            AthleteId = DefaultAthleteId,
+            Title = request.Title,
+            Description = request.Description,
+            Exercises = request.Exercises.Select((e, idx) => new TemplateExercise
+            {
+                ExerciseDefinitionId = e.ExerciseDefinitionId,
+                SortOrder = idx,
+                Notes = e.Notes,
+                TargetSets = e.TargetSets.Select(s => new TemplateSet
+                {
+                    SetNumber = s.SetNumber,
+                    TargetReps = s.TargetReps,
+                    TargetWeight = s.TargetWeight
+                }).ToList()
+            }).ToList()
+        };
+
+        var created = await _templateRepository.CreateAsync(template);
+        return CreatedAtAction(nameof(GetTemplate), new { id = created.Id }, MapToDto(created));
+    }
+
+    [HttpPut("{id}")]
+    public async Task<ActionResult<WorkoutTemplateDto>> UpdateTemplate(int id, CreateWorkoutTemplateRequest request)
+    {
+        var template = new WorkoutTemplate
+        {
+            Id = id,
+            AthleteId = DefaultAthleteId,
+            Title = request.Title,
+            Description = request.Description,
+            Exercises = request.Exercises.Select((e, idx) => new TemplateExercise
+            {
+                ExerciseDefinitionId = e.ExerciseDefinitionId,
+                SortOrder = idx,
+                Notes = e.Notes,
+                TargetSets = e.TargetSets.Select(s => new TemplateSet
+                {
+                    SetNumber = s.SetNumber,
+                    TargetReps = s.TargetReps,
+                    TargetWeight = s.TargetWeight
+                }).ToList()
+            }).ToList()
+        };
+
+        var updated = await _templateRepository.UpdateAsync(template);
+        return Ok(MapToDto(updated));
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteTemplate(int id)
+    {
+        await _templateRepository.DeleteAsync(id);
+        return NoContent();
+    }
+
+    private static WorkoutTemplateDto MapToDto(WorkoutTemplate template) => new()
+    {
+        Id = template.Id,
+        Title = template.Title,
+        Description = template.Description,
+        CreatedAt = template.CreatedAt,
+        Exercises = template.Exercises.Select(e => new TemplateExerciseDto
+        {
+            Id = e.Id,
+            ExerciseDefinitionId = e.ExerciseDefinitionId,
+            ExerciseName = e.ExerciseDefinition?.Name ?? "Unknown",
+            Notes = e.Notes,
+            TargetSets = e.TargetSets.Select(s => new TemplateSetDto
+            {
+                Id = s.Id,
+                SetNumber = s.SetNumber,
+                TargetReps = s.TargetReps,
+                TargetWeight = s.TargetWeight
+            }).OrderBy(s => s.SetNumber).ToList()
+        }).OrderBy(e => e.Id).ToList()
+    };
+}
+
+public record WorkoutTemplateDto
+{
+    public int Id { get; init; }
+    public string Title { get; init; } = string.Empty;
+    public string? Description { get; init; }
+    public DateTime CreatedAt { get; init; }
+    public List<TemplateExerciseDto> Exercises { get; init; } = new();
+}
+
+public record TemplateExerciseDto
+{
+    public int Id { get; init; }
+    public int ExerciseDefinitionId { get; init; }
+    public string ExerciseName { get; init; } = string.Empty;
+    public string? Notes { get; init; }
+    public List<TemplateSetDto> TargetSets { get; init; } = new();
+}
+
+public record TemplateSetDto
+{
+    public int Id { get; init; }
+    public int SetNumber { get; init; }
+    public int? TargetReps { get; init; }
+    public decimal? TargetWeight { get; init; }
+}
+
+public record CreateWorkoutTemplateRequest
+{
+    public string Title { get; init; } = string.Empty;
+    public string? Description { get; init; }
+    public List<CreateTemplateExerciseRequest> Exercises { get; init; } = new();
+}
+
+public record CreateTemplateExerciseRequest
+{
+    public int ExerciseDefinitionId { get; init; }
+    public string? Notes { get; init; }
+    public List<CreateTemplateSetRequest> TargetSets { get; init; } = new();
+}
+
+public record CreateTemplateSetRequest
+{
+    public int SetNumber { get; init; }
+    public int? TargetReps { get; init; }
+    public decimal? TargetWeight { get; init; }
+}

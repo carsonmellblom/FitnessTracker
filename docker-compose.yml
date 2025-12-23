@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  photo-processor:
+    build:
+      context: ./services/photo-processor
+      dockerfile: Dockerfile
+    container_name: fitness-photo-processor
+    environment:
+      - RABBITMQ_HOST=host.docker.internal
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
+      - DB_HOST=host.docker.internal
+      - DB_PORT=5432
+      - DB_NAME=fitness_tracker
+      - DB_USER=postgres
+      - DB_PASSWORD=${DB_PASSWORD:-your_password_here}
+      - UPLOADS_PATH=/app/uploads
+    volumes:
+      # Mount the uploads folder so processor can access photos
+      - ./src/FitnessTracker.API/uploads:/app/uploads
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+# Note: RabbitMQ and PostgreSQL are running locally (not in this compose file)
+# The photo-processor connects to them via host.docker.internal

@@ -1,0 +1,17 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=localhost;Port=5432;Database=fitness_tracker;Username=postgres;Password=YOUR_PASSWORD_HERE"
+  },
+  "RabbitMQ": {
+    "Host": "localhost",
+    "Port": 5672,
+    "Username": "guest",
+    "Password": "guest"
+  }
+}

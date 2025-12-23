@@ -1,0 +1,29 @@
+namespace FitnessTracker.Core.Entities;
+
+public enum PhotoProcessingStatus
+{
+    Pending,
+    Processing,
+    Completed,
+    Failed
+}
+
+public class ProgressPhoto
+{
+    public int Id { get; set; }
+    public int AthleteId { get; set; }
+    public string OriginalFileName { get; set; } = string.Empty;
+    public string ImagePath { get; set; } = string.Empty;
+    public string? ThumbnailPath { get; set; }
+    public PhotoProcessingStatus ProcessingStatus { get; set; } = PhotoProcessingStatus.Pending;
+    public string? ProcessingError { get; set; }
+    
+    // Body composition analysis results (from ML processing)
+    public string? BodyAnalysisJson { get; set; }
+    
+    public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? ProcessedAt { get; set; }
+    
+    // Navigation property
+    public Athlete Athlete { get; set; } = null!;
+}
