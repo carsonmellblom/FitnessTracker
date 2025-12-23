@@ -49,16 +49,19 @@ function Workouts() {
     const handleOpenModal = (workout = null) => {
         if (workout) {
             setEditingWorkout(workout);
+            const exercises = workout.exercises.map(ex => ({
+                ...ex,
+                sets: ex.sets.map(s => ({ ...s }))
+            })) || [];
             setFormData({
                 title: workout.title,
                 description: workout.description || '',
                 durationMinutes: workout.durationMinutes,
                 workoutDate: workout.workoutDate.split('T')[0],
-                exercises: workout.exercises.map(ex => ({
-                    ...ex,
-                    sets: ex.sets.map(s => ({ ...s }))
-                })) || [],
+                exercises,
             });
+            // Initialize all exercises as collapsed
+            setCollapsedExercises(new Set(exercises.map((_, idx) => idx)));
         } else {
             setEditingWorkout(null);
             setFormData({
@@ -68,6 +71,7 @@ function Workouts() {
                 workoutDate: new Date().toISOString().split('T')[0],
                 exercises: [],
             });
+            setCollapsedExercises(new Set());
         }
         setShowModal(true);
     };
@@ -97,6 +101,7 @@ function Workouts() {
                 },
             ],
         }));
+        // Don't collapse new exercises - user wants to fill them in immediately
     };
 
     const handleExerciseChange = (index, field, value) => {
@@ -216,6 +221,19 @@ function Workouts() {
             });
             return newSet;
         });
+    };
+
+    const toggleCollapseAll = () => {
+        // If all are collapsed, expand all. Otherwise, collapse all.
+        const allCollapsed = formData.exercises.every((_, idx) => collapsedExercises.has(idx));
+
+        if (allCollapsed) {
+            // Expand all
+            setCollapsedExercises(new Set());
+        } else {
+            // Collapse all
+            setCollapsedExercises(new Set(formData.exercises.map((_, idx) => idx)));
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -446,13 +464,25 @@ function Workouts() {
                                         <label className="form-label" style={{ margin: 0 }}>
                                             Exercises
                                         </label>
-                                        <button
-                                            type="button"
-                                            className="btn btn-secondary btn-sm"
-                                            onClick={handleAddExercise}
-                                        >
-                                            ➕ Add Exercise
-                                        </button>
+                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                            {formData.exercises.length > 0 && (
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-secondary btn-sm"
+                                                    onClick={toggleCollapseAll}
+                                                    title={formData.exercises.every((_, idx) => collapsedExercises.has(idx)) ? "Expand all sets" : "Collapse all sets"}
+                                                >
+                                                    {formData.exercises.every((_, idx) => collapsedExercises.has(idx)) ? '📂 Expand All' : '📁 Collapse All'}
+                                                </button>
+                                            )}
+                                            <button
+                                                type="button"
+                                                className="btn btn-secondary btn-sm"
+                                                onClick={handleAddExercise}
+                                            >
+                                                ➕ Add Exercise
+                                            </button>
+                                        </div>
                                     </div>
 
                                     <div className="exercise-list">
