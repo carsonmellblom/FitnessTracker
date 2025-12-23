@@ -11,6 +11,7 @@ public class FitnessDbContext : DbContext
 
     public DbSet<Athlete> Athletes => Set<Athlete>();
     public DbSet<Workout> Workouts => Set<Workout>();
+    public DbSet<ExerciseDefinitionCategory> ExerciseDefinitionCategories => Set<ExerciseDefinitionCategory>();
     public DbSet<ExerciseDefinition> ExerciseDefinitions => Set<ExerciseDefinition>();
     public DbSet<Exercise> Exercises => Set<Exercise>();
     public DbSet<ExerciseSet> ExerciseSets => Set<ExerciseSet>();
@@ -45,6 +46,14 @@ public class FitnessDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
+        // ExerciseDefinitionCategory configuration
+        modelBuilder.Entity<ExerciseDefinitionCategory>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.Description).HasMaxLength(500);
+        });
+
         // ExerciseDefinition configuration
         modelBuilder.Entity<ExerciseDefinition>(entity =>
         {
@@ -52,6 +61,11 @@ public class FitnessDbContext : DbContext
             entity.Property(e => e.Name).HasMaxLength(100).IsRequired();
             entity.Property(e => e.PrimaryMuscleGroup).HasMaxLength(100).IsRequired();
             entity.Property(e => e.Description).HasMaxLength(500);
+
+            entity.HasOne(e => e.Category)
+                .WithMany(c => c.ExerciseDefinitions)
+                .HasForeignKey(e => e.CategoryId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         // Exercise configuration
@@ -141,12 +155,19 @@ public class FitnessDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
+        // Seed exercise definition categories
+        modelBuilder.Entity<ExerciseDefinitionCategory>().HasData(
+            new ExerciseDefinitionCategory { Id = 1, Name = "Strength Training", Description = "Resistance and weight training exercises" },
+            new ExerciseDefinitionCategory { Id = 2, Name = "Cardio", Description = "Cardiovascular and aerobic exercises" },
+            new ExerciseDefinitionCategory { Id = 3, Name = "Flexibility", Description = "Stretching and mobility exercises" }
+        );
+
         // Seed some default exercises
         modelBuilder.Entity<ExerciseDefinition>().HasData(
-            new ExerciseDefinition { Id = 1, Name = "Bench Press", PrimaryMuscleGroup = "Chest", Description = "Compound chest exercise" },
-            new ExerciseDefinition { Id = 2, Name = "Squat", PrimaryMuscleGroup = "Legs", Description = "Compound leg exercise" },
-            new ExerciseDefinition { Id = 3, Name = "Deadlift", PrimaryMuscleGroup = "Back", Description = "Compound full body/back exercise" },
-            new ExerciseDefinition { Id = 4, Name = "Overhead Press", PrimaryMuscleGroup = "Shoulders", Description = "Compound shoulder exercise" }
+            new ExerciseDefinition { Id = 1, Name = "Bench Press", PrimaryMuscleGroup = "Chest", Description = "Compound chest exercise", CategoryId = 1 },
+            new ExerciseDefinition { Id = 2, Name = "Squat", PrimaryMuscleGroup = "Legs", Description = "Compound leg exercise", CategoryId = 1 },
+            new ExerciseDefinition { Id = 3, Name = "Deadlift", PrimaryMuscleGroup = "Back", Description = "Compound full body/back exercise", CategoryId = 1 },
+            new ExerciseDefinition { Id = 4, Name = "Overhead Press", PrimaryMuscleGroup = "Shoulders", Description = "Compound shoulder exercise", CategoryId = 1 }
         );
 
         // Seed a default athlete for testing (no auth)
