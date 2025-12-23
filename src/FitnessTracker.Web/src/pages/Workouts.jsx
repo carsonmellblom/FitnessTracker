@@ -14,6 +14,8 @@ function Workouts() {
         workoutDate: new Date().toISOString().split('T')[0],
         exercises: [],
     });
+    const [collapsedExercises, setCollapsedExercises] = useState(new Set());
+
 
     useEffect(() => {
         loadData();
@@ -162,6 +164,58 @@ function Workouts() {
             ...prev,
             exercises: prev.exercises.filter((_, i) => i !== index),
         }));
+    };
+
+    const toggleExerciseCollapse = (index) => {
+        setCollapsedExercises(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(index)) {
+                newSet.delete(index);
+            } else {
+                newSet.add(index);
+            }
+            return newSet;
+        });
+    };
+
+    const moveExerciseUp = (index) => {
+        if (index === 0) return;
+        setFormData((prev) => {
+            const newExercises = [...prev.exercises];
+            [newExercises[index - 1], newExercises[index]] = [newExercises[index], newExercises[index - 1]];
+            return { ...prev, exercises: newExercises };
+        });
+
+        // Update collapsed state
+        setCollapsedExercises(prev => {
+            const newSet = new Set();
+            prev.forEach(i => {
+                if (i === index) newSet.add(index - 1);
+                else if (i === index - 1) newSet.add(index);
+                else newSet.add(i);
+            });
+            return newSet;
+        });
+    };
+
+    const moveExerciseDown = (index) => {
+        if (index >= formData.exercises.length - 1) return;
+        setFormData((prev) => {
+            const newExercises = [...prev.exercises];
+            [newExercises[index], newExercises[index + 1]] = [newExercises[index + 1], newExercises[index]];
+            return { ...prev, exercises: newExercises };
+        });
+
+        // Update collapsed state
+        setCollapsedExercises(prev => {
+            const newSet = new Set();
+            prev.forEach(i => {
+                if (i === index) newSet.add(index + 1);
+                else if (i === index + 1) newSet.add(index);
+                else newSet.add(i);
+            });
+            return newSet;
+        });
     };
 
     const handleSubmit = async (e) => {
@@ -402,96 +456,176 @@ function Workouts() {
                                     </div>
 
                                     <div className="exercise-list">
-                                        {formData.exercises.map((exercise, index) => (
-                                            <div
-                                                key={index}
-                                                style={{
-                                                    background: 'var(--bg-secondary)',
-                                                    padding: '1rem',
-                                                    borderRadius: 'var(--radius-md)',
-                                                    marginBottom: '0.5rem',
-                                                }}
-                                            >
-                                                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                                                    <select
-                                                        className="form-input"
-                                                        value={exercise.exerciseDefinitionId}
-                                                        onChange={(e) =>
-                                                            handleExerciseChange(index, 'exerciseDefinitionId', e.target.value)
-                                                        }
-                                                        required
-                                                    >
-                                                        {definitions.map(def => (
-                                                            <option key={def.id} value={def.id}>
-                                                                {def.name} ({def.primaryMuscleGroup})
-                                                            </option>
-                                                        ))}
-                                                    </select>
-                                                    <button
-                                                        type="button"
-                                                        className="btn btn-danger btn-icon"
-                                                        onClick={() => handleRemoveExercise(index)}
-                                                    >
-                                                        ✕
-                                                    </button>
-                                                </div>
+                                        {formData.exercises.map((exercise, index) => {
+                                            const isCollapsed = collapsedExercises.has(index);
+                                            const selectedDef = definitions.find(d => d.id == exercise.exerciseDefinitionId);
 
-                                                <div className="sets-container" style={{ marginTop: '1rem' }}>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                                                        <span style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>Sets</span>
+                                            return (
+                                                <div
+                                                    key={index}
+                                                    style={{
+                                                        background: 'var(--bg-secondary)',
+                                                        padding: '1rem',
+                                                        borderRadius: 'var(--radius-md)',
+                                                        marginBottom: '0.5rem',
+                                                        border: '1px solid var(--border-color)',
+                                                    }}
+                                                >
+                                                    {/* Exercise Header with Reorder Controls */}
+                                                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', alignItems: 'center' }}>
+                                                        {/* Reorder buttons */}
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                            <button
+                                                                type="button"
+                                                                className="btn btn-secondary"
+                                                                onClick={() => moveExerciseUp(index)}
+                                                                disabled={index === 0}
+                                                                style={{
+                                                                    padding: '2px 8px',
+                                                                    fontSize: '0.7rem',
+                                                                    minWidth: '28px',
+                                                                    opacity: index === 0 ? 0.3 : 1,
+                                                                    cursor: index === 0 ? 'not-allowed' : 'pointer'
+                                                                }}
+                                                                title="Move up"
+                                                            >
+                                                                ▲
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                className="btn btn-secondary"
+                                                                onClick={() => moveExerciseDown(index)}
+                                                                disabled={index >= formData.exercises.length - 1}
+                                                                style={{
+                                                                    padding: '2px 8px',
+                                                                    fontSize: '0.7rem',
+                                                                    minWidth: '28px',
+                                                                    opacity: index >= formData.exercises.length - 1 ? 0.3 : 1,
+                                                                    cursor: index >= formData.exercises.length - 1 ? 'not-allowed' : 'pointer'
+                                                                }}
+                                                                title="Move down"
+                                                            >
+                                                                ▼
+                                                            </button>
+                                                        </div>
+
+                                                        {/* Exercise dropdown */}
+                                                        <select
+                                                            className="form-input"
+                                                            value={exercise.exerciseDefinitionId}
+                                                            onChange={(e) =>
+                                                                handleExerciseChange(index, 'exerciseDefinitionId', e.target.value)
+                                                            }
+                                                            required
+                                                            style={{ flex: 1 }}
+                                                        >
+                                                            {definitions.map(def => (
+                                                                <option key={def.id} value={def.id}>
+                                                                    {def.name} ({def.primaryMuscleGroup})
+                                                                </option>
+                                                            ))}
+                                                        </select>
+
+                                                        {/* Delete button */}
                                                         <button
                                                             type="button"
-                                                            className="btn btn-secondary btn-xs"
-                                                            onClick={() => handleAddSet(index)}
+                                                            className="btn btn-danger btn-icon"
+                                                            onClick={() => handleRemoveExercise(index)}
+                                                            title="Remove exercise"
                                                         >
-                                                            + Add Set
+                                                            ✕
                                                         </button>
                                                     </div>
-                                                    {exercise.sets.map((set, setIndex) => (
-                                                        <div key={setIndex} className="grid grid-3" style={{ gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center' }}>
-                                                            <div className="set-label">#{set.setNumber}</div>
-                                                            <input
-                                                                type="number"
-                                                                className="form-input btn-sm"
-                                                                placeholder="Reps"
-                                                                value={set.reps || ''}
-                                                                onChange={(e) => handleSetChange(index, setIndex, 'reps', e.target.value)}
-                                                                required
-                                                            />
-                                                            <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
-                                                                <input
-                                                                    type="number"
-                                                                    step="0.5"
-                                                                    className="form-input btn-sm"
-                                                                    placeholder="lbs"
-                                                                    value={set.weight === null ? '' : set.weight}
-                                                                    onChange={(e) => handleSetChange(index, setIndex, 'weight', e.target.value)}
-                                                                    max="2000"
-                                                                />
+
+                                                    {/* Sets Section - Collapsible */}
+                                                    <div className="sets-container" style={{ marginTop: '0.5rem' }}>
+                                                        <div
+                                                            style={{
+                                                                display: 'flex',
+                                                                justifyContent: 'space-between',
+                                                                alignItems: 'center',
+                                                                marginBottom: '0.5rem',
+                                                                cursor: 'pointer',
+                                                                userSelect: 'none'
+                                                            }}
+                                                            onClick={() => toggleExerciseCollapse(index)}
+                                                        >
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                                <span style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>
+                                                                    {isCollapsed ? '▶' : '▼'} Sets
+                                                                </span>
+                                                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                                                    ({exercise.sets.length})
+                                                                </span>
+                                                            </div>
+                                                            {!isCollapsed && (
                                                                 <button
                                                                     type="button"
-                                                                    className="btn btn-danger btn-xs"
-                                                                    onClick={() => handleRemoveSet(index, setIndex)}
-                                                                    disabled={exercise.sets.length === 1}
+                                                                    className="btn btn-secondary btn-xs"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleAddSet(index);
+                                                                    }}
                                                                 >
-                                                                    ✕
+                                                                    + Add Set
                                                                 </button>
-                                                            </div>
+                                                            )}
                                                         </div>
-                                                    ))}
-                                                </div>
 
-                                                <div style={{ marginTop: '0.5rem' }}>
-                                                    <input
-                                                        type="text"
-                                                        className="form-input btn-sm"
-                                                        placeholder="Exercise notes..."
-                                                        value={exercise.notes || ''}
-                                                        onChange={(e) => handleExerciseChange(index, 'notes', e.target.value)}
-                                                    />
+                                                        {!isCollapsed && (
+                                                            <div style={{
+                                                                animation: 'fadeIn 0.2s ease',
+                                                                overflow: 'hidden'
+                                                            }}>
+                                                                {exercise.sets.map((set, setIndex) => (
+                                                                    <div key={setIndex} className="grid grid-3" style={{ gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center' }}>
+                                                                        <div className="set-label">#{set.setNumber}</div>
+                                                                        <input
+                                                                            type="number"
+                                                                            className="form-input btn-sm"
+                                                                            placeholder="Reps"
+                                                                            value={set.reps || ''}
+                                                                            onChange={(e) => handleSetChange(index, setIndex, 'reps', e.target.value)}
+                                                                            required
+                                                                        />
+                                                                        <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+                                                                            <input
+                                                                                type="number"
+                                                                                step="0.5"
+                                                                                className="form-input btn-sm"
+                                                                                placeholder="lbs"
+                                                                                value={set.weight === null ? '' : set.weight}
+                                                                                onChange={(e) => handleSetChange(index, setIndex, 'weight', e.target.value)}
+                                                                                max="2000"
+                                                                            />
+                                                                            <button
+                                                                                type="button"
+                                                                                className="btn btn-danger btn-xs"
+                                                                                onClick={() => handleRemoveSet(index, setIndex)}
+                                                                                disabled={exercise.sets.length === 1}
+                                                                            >
+                                                                                ✕
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Exercise Notes */}
+                                                    <div style={{ marginTop: '0.75rem' }}>
+                                                        <input
+                                                            type="text"
+                                                            className="form-input btn-sm"
+                                                            placeholder="Exercise notes..."
+                                                            value={exercise.notes || ''}
+                                                            onChange={(e) => handleExerciseChange(index, 'notes', e.target.value)}
+                                                        />
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             </div>
