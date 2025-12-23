@@ -76,3 +76,4 @@ Thumbs.db
 # Uploads folder contents (keep folder structure)
 uploads/*
 !uploads/.gitkeep
+/.agent/workflows

@@ -115,7 +115,148 @@ public class WorkoutRepository : IWorkoutRepository
     public async Task<IEnumerable<ExerciseDefinition>> GetDefinitionsAsync()
     {
         return await _context.ExerciseDefinitions
+            .Include(ed => ed.Category)
             .OrderBy(ed => ed.Name)
             .ToListAsync();
+    }
+
+    public async Task<ExerciseDefinition?> GetDefinitionByIdAsync(int id)
+    {
+        return await _context.ExerciseDefinitions
+            .Include(ed => ed.Category)
+            .FirstOrDefaultAsync(ed => ed.Id == id);
+    }
+
+    public async Task<ExerciseDefinition> CreateDefinitionAsync(ExerciseDefinition definition)
+    {
+        try
+        {
+            _context.ExerciseDefinitions.Add(definition);
+            await _context.SaveChangesAsync();
+
+            // Reload to include category
+            return await GetDefinitionByIdAsync(definition.Id)
+                ?? throw new InvalidOperationException("Failed to retrieve created definition");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Error creating exercise definition: {Message}", ex.Message);
+            throw;
+        }
+    }
+
+    public async Task<ExerciseDefinition> UpdateDefinitionAsync(ExerciseDefinition definition)
+    {
+        try
+        {
+            var existing = await _context.ExerciseDefinitions.FindAsync(definition.Id);
+            if (existing == null)
+            {
+                throw new ArgumentException("Exercise definition not found");
+            }
+
+            existing.Name = definition.Name;
+            existing.PrimaryMuscleGroup = definition.PrimaryMuscleGroup;
+            existing.Description = definition.Description;
+            existing.CategoryId = definition.CategoryId;
+
+            await _context.SaveChangesAsync();
+
+            // Reload to include category
+            return await GetDefinitionByIdAsync(definition.Id)
+                ?? throw new InvalidOperationException("Failed to retrieve updated definition");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Error updating exercise definition: {Message}", ex.Message);
+            throw;
+        }
+    }
+
+    public async Task DeleteDefinitionAsync(int id)
+    {
+        try
+        {
+            var definition = await _context.ExerciseDefinitions.FindAsync(id);
+            if (definition != null)
+            {
+                _context.ExerciseDefinitions.Remove(definition);
+                await _context.SaveChangesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Error deleting exercise definition: {Message}", ex.Message);
+            throw;
+        }
+    }
+
+    // Category methods
+    public async Task<IEnumerable<ExerciseDefinitionCategory>> GetCategoriesAsync()
+    {
+        return await _context.ExerciseDefinitionCategories
+            .OrderBy(c => c.Name)
+            .ToListAsync();
+    }
+
+    public async Task<ExerciseDefinitionCategory?> GetCategoryByIdAsync(int id)
+    {
+        return await _context.ExerciseDefinitionCategories.FindAsync(id);
+    }
+
+    public async Task<ExerciseDefinitionCategory> CreateCategoryAsync(ExerciseDefinitionCategory category)
+    {
+        try
+        {
+            _context.ExerciseDefinitionCategories.Add(category);
+            await _context.SaveChangesAsync();
+            return category;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Error creating exercise category: {Message}", ex.Message);
+            throw;
+        }
+    }
+
+    public async Task<ExerciseDefinitionCategory> UpdateCategoryAsync(ExerciseDefinitionCategory category)
+    {
+        try
+        {
+            var existing = await _context.ExerciseDefinitionCategories.FindAsync(category.Id);
+            if (existing == null)
+            {
+                throw new ArgumentException("Exercise category not found");
+            }
+
+            existing.Name = category.Name;
+            existing.Description = category.Description;
+
+            await _context.SaveChangesAsync();
+            return existing;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Error updating exercise category: {Message}", ex.Message);
+            throw;
+        }
+    }
+
+    public async Task DeleteCategoryAsync(int id)
+    {
+        try
+        {
+            var category = await _context.ExerciseDefinitionCategories.FindAsync(id);
+            if (category != null)
+            {
+                _context.ExerciseDefinitionCategories.Remove(category);
+                await _context.SaveChangesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Error deleting exercise category: {Message}", ex.Message);
+            throw;
+        }
     }
 }

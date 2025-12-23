@@ -96,6 +96,73 @@ export const exerciseDefinitionsApi = {
         if (!response.ok) throw new Error('Failed to fetch exercise definitions');
         return response.json();
     },
+    getById: async (id) => {
+        const response = await fetch(`${API_BASE_URL}/exercisedefinitions/${id}`);
+        if (!response.ok) throw new Error('Failed to fetch exercise definition');
+        return response.json();
+    },
+    create: async (data) => {
+        const response = await fetch(`${API_BASE_URL}/exercisedefinitions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+        if (!response.ok) throw new Error('Failed to create exercise definition');
+        return response.json();
+    },
+    update: async (id, data) => {
+        const response = await fetch(`${API_BASE_URL}/exercisedefinitions/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+        if (!response.ok) throw new Error('Failed to update exercise definition');
+        return response.json();
+    },
+    delete: async (id) => {
+        const response = await fetch(`${API_BASE_URL}/exercisedefinitions/${id}`, {
+            method: 'DELETE',
+        });
+        if (!response.ok) throw new Error('Failed to delete exercise definition');
+    },
+};
+
+// Exercise Definition Categories API
+export const categoriesApi = {
+    getAll: async () => {
+        const response = await fetch(`${API_BASE_URL}/exercisedefinitioncategories`);
+        if (!response.ok) throw new Error('Failed to fetch categories');
+        return response.json();
+    },
+    getById: async (id) => {
+        const response = await fetch(`${API_BASE_URL}/exercisedefinitioncategories/${id}`);
+        if (!response.ok) throw new Error('Failed to fetch category');
+        return response.json();
+    },
+    create: async (data) => {
+        const response = await fetch(`${API_BASE_URL}/exercisedefinitioncategories`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+        if (!response.ok) throw new Error('Failed to create category');
+        return response.json();
+    },
+    update: async (id, data) => {
+        const response = await fetch(`${API_BASE_URL}/exercisedefinitioncategories/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+        if (!response.ok) throw new Error('Failed to update category');
+        return response.json();
+    },
+    delete: async (id) => {
+        const response = await fetch(`${API_BASE_URL}/exercisedefinitioncategories/${id}`, {
+            method: 'DELETE',
+        });
+        if (!response.ok) throw new Error('Failed to delete category');
+    },
 };
 
 // Workout Templates API
