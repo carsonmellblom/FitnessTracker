@@ -196,6 +196,4 @@ dotnet test
 - Verify uploads folder is mounted correctly
 - Check RabbitMQ queue: http://localhost:15672/#/queues
 
-## License
 
-MIT
