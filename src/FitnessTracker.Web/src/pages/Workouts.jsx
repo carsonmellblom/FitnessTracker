@@ -15,8 +15,8 @@ function Workouts() {
         exercises: [],
     });
     const [collapsedExercises, setCollapsedExercises] = useState(new Set());
-    const [dirtySets, setDirtySets] = useState(new Set()); // Track which sets have unsaved changes
-
+    const usedExerciseDefinitionIds = formData.exercises.map(e => e.exerciseDefinitionId);
+    const unusedExerciseDefinitions = definitions.filter(d => !usedExerciseDefinitionIds.includes(d.id));
 
     useEffect(() => {
         loadData();
@@ -25,6 +25,7 @@ function Workouts() {
     const loadData = async () => {
         try {
             setLoading(true);
+            //Get the list of workouts and exercise definitions on component load
             const [workoutsData, definitionsData] = await Promise.all([
                 workoutsApi.getAll(),
                 exerciseDefinitionsApi.getAll()
@@ -38,6 +39,7 @@ function Workouts() {
         }
     };
 
+    //Use this function to hot-reload workouts on actions like creating/deleting
     const loadWorkouts = async () => {
         try {
             const data = await workoutsApi.getAll();
@@ -91,18 +93,24 @@ function Workouts() {
     };
 
     const handleAddExercise = () => {
+        const usedIds = formData.exercises.map(e => e.exerciseDefinitionId);
+        const unusedDefs = definitions.filter(def => !usedIds.includes(def.id));
+        //Dont add if no exercises left to add, prevent button from doing anything. Need to update the UI to disable the button
+        if (unusedDefs.length === 0) {
+            alert('No more exercises to add!');
+            return;
+        }
         setFormData((prev) => ({
             ...prev,
             exercises: [
                 ...prev.exercises,
                 {
-                    exerciseDefinitionId: definitions[0]?.id || 0,
+                    exerciseDefinitionId: unusedDefs[0].id,
                     notes: '',
                     sets: [{ setNumber: 1, reps: 10, weight: null }]
                 },
             ],
         }));
-        // Don't collapse new exercises - user wants to fill them in immediately
     };
 
     const handleExerciseChange = (index, field, value) => {
@@ -119,156 +127,26 @@ function Workouts() {
         }));
     };
 
-    const handleAddSet = async (exerciseIndex) => {
-        const exercise = formData.exercises[exerciseIndex];
-        const lastSet = exercise.sets[exercise.sets.length - 1];
+    const handleAddSet = (exerciseIndex) => {
+        setFormData((prev) => {
+            const newExercises = [...prev.exercises];
+            const exercise = { ...newExercises[exerciseIndex] };
+            const sets = [...exercise.sets];
+            const lastSet = sets[sets.length - 1];
 
-        const newSetData = {
-            setNumber: exercise.sets.length + 1,
-            reps: lastSet?.reps || 10,
-            weight: lastSet?.weight || null,
-        };
+            sets.push({
+                setNumber: sets.length + 1,
+                reps: lastSet?.reps || 10,
+                weight: lastSet?.weight || null,
+            });
 
-        // If editing existing workout, save to API immediately
-        if (editingWorkout && exercise.id) {
-            try {
-                await workoutsApi.addSet(editingWorkout.id, exercise.id, newSetData);
-
-                // Reload entire workout to get updated PR status for ALL sets
-                const reloaded = await workoutsApi.getById(editingWorkout.id);
-                setEditingWorkout(reloaded);
-
-                const exercises = reloaded.exercises.map(ex => ({
-                    ...ex,
-                    sets: ex.sets.map(s => ({ ...s }))
-                })) || [];
-
-                setFormData(prev => ({
-                    ...prev,
-                    exercises,
-                }));
-
-                // Mark the new set as dirty so save icon appears immediately
-                const newSetIndex = exercises[exerciseIndex]?.sets.length - 1;
-                if (newSetIndex >= 0) {
-                    const key = `${exerciseIndex}-${newSetIndex}`;
-                    setDirtySets(prev => new Set(prev).add(key));
-                }
-            } catch (error) {
-                console.error('Failed to add set:', error);
-                alert(error.message || 'Failed to add set');
-            }
-        } else {
-            // For new workouts without IDs, create the workout first
-            try {
-                // Create workout with current exercises
-                const submissionData = {
-                    ...formData,
-                    exercises: formData.exercises.map(ex => ({
-                        exerciseDefinitionId: parseInt(ex.exerciseDefinitionId),
-                        notes: ex.notes,
-                        sets: ex.sets.map(s => ({
-                            setNumber: s.setNumber,
-                            reps: s.reps != null ? parseInt(s.reps) : null,
-                            weight: s.weight != null ? Math.round(parseFloat(s.weight) * 100) / 100 : null
-                        }))
-                    }))
-                };
-
-                const created = await workoutsApi.create(submissionData);
-                const reloaded = await workoutsApi.getById(created.id);
-                setEditingWorkout(reloaded);
-
-                // Update form data with the reloaded workout (has IDs now)
-                const exercises = reloaded.exercises.map(ex => ({
-                    ...ex,
-                    sets: ex.sets.map(s => ({ ...s }))
-                })) || [];
-
-                setFormData({
-                    title: reloaded.title,
-                    description: reloaded.description || '',
-                    durationMinutes: reloaded.durationMinutes,
-                    workoutDate: reloaded.workoutDate.split('T')[0],
-                    exercises,
-                });
-
-                // Now add the new set via API
-                const reloadedExercise = exercises[exerciseIndex];
-                if (reloadedExercise && reloadedExercise.id) {
-                    const savedSet = await workoutsApi.addSet(reloaded.id, reloadedExercise.id, newSetData);
-
-                    // Update local state with the new set
-                    setFormData((prev) => {
-                        const newExercises = [...prev.exercises];
-                        const exercise = { ...newExercises[exerciseIndex] };
-                        exercise.sets = [...exercise.sets, savedSet];
-                        newExercises[exerciseIndex] = exercise;
-                        return { ...prev, exercises: newExercises };
-                    });
-
-                    // Mark the new set as dirty
-                    const newSetIndex = reloadedExercise.sets.length;
-                    const key = `${exerciseIndex}-${newSetIndex}`;
-                    setDirtySets(prev => new Set(prev).add(key));
-                }
-            } catch (error) {
-                console.error('Failed to create workout and add set:', error);
-                alert(error.message || 'Failed to add set');
-            }
-        }
-    };
-
-    const handleSaveSet = async (exerciseIndex, setIndex) => {
-        const exercise = formData.exercises[exerciseIndex];
-        const set = exercise.sets[setIndex];
-
-        if (!editingWorkout || !exercise.id || !set.id) {
-            alert('Cannot save set - workout must be saved first');
-            return;
-        }
-
-        try {
-            const setData = {
-                setNumber: set.setNumber,
-                reps: set.reps != null ? parseInt(set.reps) : null,
-                weight: set.weight != null ? Math.round(parseFloat(set.weight) * 100) / 100 : null
-            };
-
-            await workoutsApi.updateSet(editingWorkout.id, exercise.id, set.id, setData);
-
-            // Reload entire workout to get updated PR status for ALL sets
-            const reloaded = await workoutsApi.getById(editingWorkout.id);
-            setEditingWorkout(reloaded);
-
-            const exercises = reloaded.exercises.map(ex => ({
-                ...ex,
-                sets: ex.sets.map(s => ({ ...s }))
-            })) || [];
-
-            setFormData(prev => ({
-                ...prev,
-                exercises,
-            }));
-
-            // Mark set as clean after successful save
-            markSetClean(exerciseIndex, setIndex);
-        } catch (error) {
-            console.error('Failed to save set:', error);
-            alert(error.message || 'Failed to save set');
-        }
+            exercise.sets = sets;
+            newExercises[exerciseIndex] = exercise;
+            return { ...prev, exercises: newExercises };
+        });
     };
 
     const handleSetChange = (exerciseIndex, setIndex, field, value) => {
-        const exercise = formData.exercises[exerciseIndex];
-        const set = exercise.sets[setIndex];
-
-        // Mark set as dirty if it has an ID (existing set)
-        if (set.id) {
-            const key = `${exerciseIndex}-${setIndex}`;
-            setDirtySets(prev => new Set(prev).add(key));
-        }
-
         setFormData((prev) => {
             const newExercises = [...prev.exercises];
             const exercise = { ...newExercises[exerciseIndex] };
@@ -285,58 +163,14 @@ function Workouts() {
         });
     };
 
-    const isSetDirty = (exerciseIndex, setIndex) => {
-        const key = `${exerciseIndex}-${setIndex}`;
-        return dirtySets.has(key);
-    };
-
-    const markSetClean = (exerciseIndex, setIndex) => {
-        const key = `${exerciseIndex}-${setIndex}`;
-        setDirtySets(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(key);
-            return newSet;
+    const handleRemoveSet = (exerciseIndex, setIndex) => {
+        setFormData((prev) => {
+            const newExercises = [...prev.exercises];
+            const exercise = { ...newExercises[exerciseIndex] };
+            exercise.sets = exercise.sets.filter((_, i) => i !== setIndex).map((s, i) => ({ ...s, setNumber: i + 1 }));
+            newExercises[exerciseIndex] = exercise;
+            return { ...prev, exercises: newExercises };
         });
-    };
-
-    const handleRemoveSet = async (exerciseIndex, setIndex) => {
-        const exercise = formData.exercises[exerciseIndex];
-        const set = exercise.sets[setIndex];
-
-        // If editing existing workout and set has an ID, delete from API
-        if (editingWorkout && exercise.id && set.id) {
-            if (!window.confirm('Are you sure you want to delete this set?')) return;
-
-            try {
-                await workoutsApi.deleteSet(editingWorkout.id, exercise.id, set.id);
-
-                // Reload entire workout to get updated PR status for remaining sets
-                const reloaded = await workoutsApi.getById(editingWorkout.id);
-                setEditingWorkout(reloaded);
-
-                const exercises = reloaded.exercises.map(ex => ({
-                    ...ex,
-                    sets: ex.sets.map(s => ({ ...s }))
-                })) || [];
-
-                setFormData(prev => ({
-                    ...prev,
-                    exercises,
-                }));
-            } catch (error) {
-                console.error('Failed to delete set:', error);
-                alert(error.message || 'Failed to delete set');
-            }
-        } else {
-            // For new workouts, just update local state
-            setFormData((prev) => {
-                const newExercises = [...prev.exercises];
-                const exercise = { ...newExercises[exerciseIndex] };
-                exercise.sets = exercise.sets.filter((_, i) => i !== setIndex).map((s, i) => ({ ...s, setNumber: i + 1 }));
-                newExercises[exerciseIndex] = exercise;
-                return { ...prev, exercises: newExercises };
-            });
-        }
     };
 
     const handleRemoveExercise = (index) => {
@@ -413,17 +247,8 @@ function Workouts() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
-        // If editing an existing workout, auto-save all dirty sets then close
-        if (editingWorkout) {
-            await autoSaveAllDirtySets();
-            handleCloseModal();
-            loadWorkouts();
-            return;
-        }
-
-        // For new workouts, create the workout skeleton first
         try {
+            // Clean up data for submission
             const submissionData = {
                 ...formData,
                 exercises: formData.exercises.map(ex => ({
@@ -437,45 +262,17 @@ function Workouts() {
                 }))
             };
 
-            const created = await workoutsApi.create(submissionData);
-
-            // Reload the created workout to get IDs for all entities
-            const reloaded = await workoutsApi.getById(created.id);
-            setEditingWorkout(reloaded);
-
-            // Update form data with the reloaded workout (has IDs now)
-            const exercises = reloaded.exercises.map(ex => ({
-                ...ex,
-                sets: ex.sets.map(s => ({ ...s }))
-            })) || [];
-
-            setFormData({
-                title: reloaded.title,
-                description: reloaded.description || '',
-                durationMinutes: reloaded.durationMinutes,
-                workoutDate: reloaded.workoutDate.split('T')[0],
-                exercises,
-            });
-
-            setDirtySets(new Set()); // All sets are clean after creation
+            if (editingWorkout) {
+                await workoutsApi.update(editingWorkout.id, submissionData);
+            } else {
+                await workoutsApi.create(submissionData);
+            }
+            handleCloseModal();
+            loadWorkouts();
         } catch (error) {
             console.error('Failed to save workout:', error);
             alert(error.message || 'Failed to save workout. Please check your inputs.');
         }
-    };
-
-    const autoSaveAllDirtySets = async () => {
-        const savePromises = [];
-
-        formData.exercises.forEach((exercise, exerciseIndex) => {
-            exercise.sets.forEach((set, setIndex) => {
-                if (isSetDirty(exerciseIndex, setIndex) && set.id) {
-                    savePromises.push(handleSaveSet(exerciseIndex, setIndex));
-                }
-            });
-        });
-
-        await Promise.all(savePromises);
     };
 
     const handleDelete = async (id) => {
@@ -527,22 +324,25 @@ function Workouts() {
                         <div key={workout.id} className="card">
                             <div className="card-header">
                                 <div>
-                                    <h3 className="card-title">
+                                    <h3 className="card-title">{workout.title}</h3>
+                                    <p className="card-subtitle">
                                         {new Date(workout.workoutDate).toLocaleDateString('en-US', {
                                             weekday: 'long',
                                             year: 'numeric',
                                             month: 'long',
                                             day: 'numeric',
                                         })}
-                                    </h3>
+                                    </p>
                                 </div>
                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    {/* Edit button next to workout */}
                                     <button
                                         className="btn btn-secondary btn-sm"
                                         onClick={() => handleOpenModal(workout)}
                                     >
                                         ✏️
                                     </button>
+                                    {/* Delete button next to workout */}
                                     <button
                                         className="btn btn-danger btn-sm"
                                         onClick={() => handleDelete(workout.id)}
@@ -569,6 +369,7 @@ function Workouts() {
                                 </div>
                             </div>
 
+                            {/* Personal Records */}
                             {workout.exercises.length > 0 && (
                                 <div className="exercise-list">
                                     {workout.exercises.map((exercise) => (
@@ -589,18 +390,6 @@ function Workouts() {
                                                         <span className="set-number">Set {set.setNumber}</span>
                                                         <span className="set-stats">
                                                             {set.reps} reps @ {set.weight} lbs
-                                                            {set.isPR && (
-                                                                <span
-                                                                    style={{
-                                                                        marginLeft: '0.5rem',
-                                                                        fontSize: '1.1rem',
-                                                                        filter: 'drop-shadow(0 0 4px rgba(255, 215, 0, 0.6))'
-                                                                    }}
-                                                                    title="Personal Record!"
-                                                                >
-                                                                    🏆
-                                                                </span>
-                                                            )}
                                                         </span>
                                                     </div>
                                                 ))}
@@ -633,15 +422,42 @@ function Workouts() {
                         <form onSubmit={handleSubmit}>
                             <div className="modal-body">
                                 <div className="form-group">
-                                    <label className="form-label">Date</label>
+                                    <label className="form-label">Workout Title</label>
                                     <input
-                                        type="date"
-                                        name="workoutDate"
+                                        type="text"
+                                        name="title"
                                         className="form-input"
-                                        value={formData.workoutDate}
+                                        value={formData.title}
                                         onChange={handleInputChange}
+                                        placeholder="e.g., Upper Body Strength"
                                         required
                                     />
+                                </div>
+
+                                <div className="grid grid-2">
+                                    <div className="form-group">
+                                        <label className="form-label">Date</label>
+                                        <input
+                                            type="date"
+                                            name="workoutDate"
+                                            className="form-input"
+                                            value={formData.workoutDate}
+                                            onChange={handleInputChange}
+                                            required
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">Duration (minutes)</label>
+                                        <input
+                                            type="number"
+                                            name="durationMinutes"
+                                            className="form-input"
+                                            value={formData.durationMinutes}
+                                            onChange={handleInputChange}
+                                            min="1"
+                                            required
+                                        />
+                                    </div>
                                 </div>
 
                                 <div className="form-group">
@@ -660,6 +476,7 @@ function Workouts() {
                                         <label className="form-label" style={{ margin: 0 }}>
                                             Exercises
                                         </label>
+                                        {/* Collapse all button */}
                                         <div style={{ display: 'flex', gap: '0.5rem' }}>
                                             {formData.exercises.length > 0 && (
                                                 <button
@@ -675,6 +492,7 @@ function Workouts() {
                                                 type="button"
                                                 className="btn btn-secondary btn-sm"
                                                 onClick={handleAddExercise}
+                                                disabled={unusedExerciseDefinitions.length === 0}
                                             >
                                                 ➕ Add Exercise
                                             </button>
@@ -685,6 +503,11 @@ function Workouts() {
                                         {formData.exercises.map((exercise, index) => {
                                             const isCollapsed = collapsedExercises.has(index);
                                             const selectedDef = definitions.find(d => d.id == exercise.exerciseDefinitionId);
+                                            // Show current selection + unused exercises for this dropdown
+                                            const availableForThisRow = definitions.filter(d =>
+                                                d.id == exercise.exerciseDefinitionId ||
+                                                !formData.exercises.some((ex, i) => i !== index && ex.exerciseDefinitionId == d.id)
+                                            );
 
                                             return (
                                                 <div
@@ -745,7 +568,7 @@ function Workouts() {
                                                             required
                                                             style={{ flex: 1 }}
                                                         >
-                                                            {definitions.map(def => (
+                                                            {availableForThisRow.map(def => (
                                                                 <option key={def.id} value={def.id}>
                                                                     {def.name} ({def.primaryMuscleGroup})
                                                                 </option>
@@ -804,7 +627,7 @@ function Workouts() {
                                                                 overflow: 'hidden'
                                                             }}>
                                                                 {exercise.sets.map((set, setIndex) => (
-                                                                    <div key={setIndex} className="grid" style={{ gridTemplateColumns: '40px 1fr 1fr auto', gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center' }}>
+                                                                    <div key={setIndex} className="grid grid-3" style={{ gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center' }}>
                                                                         <div className="set-label">#{set.setNumber}</div>
                                                                         <input
                                                                             type="number"
@@ -814,39 +637,16 @@ function Workouts() {
                                                                             onChange={(e) => handleSetChange(index, setIndex, 'reps', e.target.value)}
                                                                             required
                                                                         />
-                                                                        <input
-                                                                            type="number"
-                                                                            step="0.5"
-                                                                            className="form-input btn-sm"
-                                                                            placeholder="lbs"
-                                                                            value={set.weight === null ? '' : set.weight}
-                                                                            onChange={(e) => handleSetChange(index, setIndex, 'weight', e.target.value)}
-                                                                            max="2000"
-                                                                        />
                                                                         <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
-                                                                            {/* Show save button only for existing sets that have been modified */}
-                                                                            {editingWorkout && exercise.id && set.id && isSetDirty(index, setIndex) && (
-                                                                                <button
-                                                                                    type="button"
-                                                                                    className="btn btn-primary btn-xs"
-                                                                                    onClick={() => handleSaveSet(index, setIndex)}
-                                                                                    title="Save changes to this set"
-                                                                                >
-                                                                                    💾
-                                                                                </button>
-                                                                            )}
-                                                                            {/* Show PR trophy if applicable */}
-                                                                            {set.isPR && (
-                                                                                <span
-                                                                                    style={{
-                                                                                        fontSize: '1.1rem',
-                                                                                        filter: 'drop-shadow(0 0 4px rgba(255, 215, 0, 0.6))'
-                                                                                    }}
-                                                                                    title="Personal Record!"
-                                                                                >
-                                                                                    🏆
-                                                                                </span>
-                                                                            )}
+                                                                            <input
+                                                                                type="number"
+                                                                                step="0.5"
+                                                                                className="form-input btn-sm"
+                                                                                placeholder="lbs"
+                                                                                value={set.weight === null ? '' : set.weight}
+                                                                                onChange={(e) => handleSetChange(index, setIndex, 'weight', e.target.value)}
+                                                                                max="2000"
+                                                                            />
                                                                             <button
                                                                                 type="button"
                                                                                 className="btn btn-danger btn-xs"
@@ -880,8 +680,15 @@ function Workouts() {
                             </div>
 
                             <div className="modal-footer">
+                                <button
+                                    type="button"
+                                    className="btn btn-secondary"
+                                    onClick={handleCloseModal}
+                                >
+                                    Cancel
+                                </button>
                                 <button type="submit" className="btn btn-primary">
-                                    Close
+                                    {editingWorkout ? 'Save Changes' : 'Log Workout'}
                                 </button>
                             </div>
                         </form>
