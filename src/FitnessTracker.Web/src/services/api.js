@@ -53,6 +53,40 @@ export const workoutsApi = {
         if (!response.ok) throw new Error('Failed to log workout from template');
         return response.json();
     },
+
+    // Individual set operations
+    addSet: async (workoutId, exerciseId, setData) => {
+        const response = await fetch(`${API_BASE_URL}/workouts/${workoutId}/exercises/${exerciseId}/sets`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(setData),
+        });
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText || 'Failed to add set');
+        }
+        return response.json();
+    },
+
+    updateSet: async (workoutId, exerciseId, setId, setData) => {
+        const response = await fetch(`${API_BASE_URL}/workouts/${workoutId}/exercises/${exerciseId}/sets/${setId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(setData),
+        });
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText || 'Failed to update set');
+        }
+        return response.json();
+    },
+
+    deleteSet: async (workoutId, exerciseId, setId) => {
+        const response = await fetch(`${API_BASE_URL}/workouts/${workoutId}/exercises/${exerciseId}/sets/${setId}`, {
+            method: 'DELETE',
+        });
+        if (!response.ok) throw new Error('Failed to delete set');
+    },
 };
 
 // Photos API

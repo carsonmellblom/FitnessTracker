@@ -6,6 +6,12 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Explicitly set URLs if not already configured
+if (!builder.Configuration["Urls"]?.Contains("localhost") ?? true)
+{
+    builder.WebHost.UseUrls("http://localhost:5067");
+}
+
 // Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
