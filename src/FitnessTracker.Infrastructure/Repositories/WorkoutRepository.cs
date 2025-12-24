@@ -45,7 +45,9 @@ public class WorkoutRepository : IWorkoutRepository
         {
             _context.Workouts.Add(workout);
             await _context.SaveChangesAsync();
-            return workout;
+
+            // Reload the workout with all nested entities to ensure IDs are populated
+            return await GetByIdAsync(workout.Id) ?? workout;
         }
         catch (Exception ex)
         {
@@ -59,33 +61,35 @@ public class WorkoutRepository : IWorkoutRepository
         try
         {
             var existingWorkout = await _context.Workouts
-                .Include(w => w.Exercises)
-                    .ThenInclude(e => e.Sets)
-                .FirstOrDefaultAsync(w => w.Id == workout.Id);
-
-            if (existingWorkout == null)
-            {
-                throw new ArgumentException("Workout not found");
-            }
+                .FirstOrDefaultAsync(w => w.Id == workout.Id) ?? throw new ArgumentException("Workout not found");
 
             // Update scalar properties
-            existingWorkout.Title = workout.Title;
             existingWorkout.Description = workout.Description;
-            existingWorkout.DurationMinutes = workout.DurationMinutes;
             existingWorkout.WorkoutDate = workout.WorkoutDate;
 
-            // Remove existing exercises (and their sets via cascade)
-            _context.Exercises.RemoveRange(existingWorkout.Exercises);
+            // Delete existing exercises by ID (avoids EF tracking issues)
+            var existingExerciseIds = await _context.Exercises
+                .Where(e => e.WorkoutId == workout.Id)
+                .Select(e => e.Id)
+                .ToListAsync();
+
+            if (existingExerciseIds.Any())
+            {
+                await _context.Database.ExecuteSqlRawAsync(
+                    $"DELETE FROM \"Exercises\" WHERE \"WorkoutId\" = {workout.Id}");
+            }
 
             // Add new exercises
             foreach (var exercise in workout.Exercises)
             {
                 exercise.WorkoutId = workout.Id;
-                existingWorkout.Exercises.Add(exercise);
+                _context.Exercises.Add(exercise);
             }
 
             await _context.SaveChangesAsync();
-            return existingWorkout;
+
+            // Reload with all relations
+            return await GetByIdAsync(workout.Id) ?? existingWorkout;
         }
         catch (Exception ex)
         {

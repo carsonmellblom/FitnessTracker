@@ -3,6 +3,7 @@ using System;
 using FitnessTracker.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FitnessTracker.Infrastructure.Migrations
 {
     [DbContext(typeof(FitnessDbContext))]
-    partial class FitnessDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251223211546_UpdatePRToVolumeBased")]
+    partial class UpdatePRToVolumeBased
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -54,7 +57,7 @@ namespace FitnessTracker.Infrastructure.Migrations
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTime(2025, 12, 24, 2, 44, 5, 858, DateTimeKind.Utc).AddTicks(9148),
+                            CreatedAt = new DateTime(2025, 12, 23, 21, 15, 46, 558, DateTimeKind.Utc).AddTicks(2534),
                             Email = "athlete@fitnesstracker.local",
                             Name = "Default Athlete"
                         });
@@ -126,7 +129,7 @@ namespace FitnessTracker.Infrastructure.Migrations
                         {
                             Id = 1,
                             CategoryId = 1,
-                            CreatedAt = new DateTime(2025, 12, 24, 2, 44, 5, 858, DateTimeKind.Utc).AddTicks(9122),
+                            CreatedAt = new DateTime(2025, 12, 23, 21, 15, 46, 558, DateTimeKind.Utc).AddTicks(2509),
                             Description = "Compound chest exercise",
                             Name = "Bench Press",
                             PrimaryMuscleGroup = "Chest"
@@ -135,7 +138,7 @@ namespace FitnessTracker.Infrastructure.Migrations
                         {
                             Id = 2,
                             CategoryId = 1,
-                            CreatedAt = new DateTime(2025, 12, 24, 2, 44, 5, 858, DateTimeKind.Utc).AddTicks(9127),
+                            CreatedAt = new DateTime(2025, 12, 23, 21, 15, 46, 558, DateTimeKind.Utc).AddTicks(2512),
                             Description = "Compound leg exercise",
                             Name = "Squat",
                             PrimaryMuscleGroup = "Legs"
@@ -144,7 +147,7 @@ namespace FitnessTracker.Infrastructure.Migrations
                         {
                             Id = 3,
                             CategoryId = 1,
-                            CreatedAt = new DateTime(2025, 12, 24, 2, 44, 5, 858, DateTimeKind.Utc).AddTicks(9128),
+                            CreatedAt = new DateTime(2025, 12, 23, 21, 15, 46, 558, DateTimeKind.Utc).AddTicks(2513),
                             Description = "Compound full body/back exercise",
                             Name = "Deadlift",
                             PrimaryMuscleGroup = "Back"
@@ -153,7 +156,7 @@ namespace FitnessTracker.Infrastructure.Migrations
                         {
                             Id = 4,
                             CategoryId = 1,
-                            CreatedAt = new DateTime(2025, 12, 24, 2, 44, 5, 858, DateTimeKind.Utc).AddTicks(9129),
+                            CreatedAt = new DateTime(2025, 12, 23, 21, 15, 46, 558, DateTimeKind.Utc).AddTicks(2514),
                             Description = "Compound shoulder exercise",
                             Name = "Overhead Press",
                             PrimaryMuscleGroup = "Shoulders"
@@ -188,21 +191,21 @@ namespace FitnessTracker.Infrastructure.Migrations
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTime(2025, 12, 24, 2, 44, 5, 858, DateTimeKind.Utc).AddTicks(8962),
+                            CreatedAt = new DateTime(2025, 12, 23, 21, 15, 46, 558, DateTimeKind.Utc).AddTicks(2319),
                             Description = "Resistance and weight training exercises",
                             Name = "Strength Training"
                         },
                         new
                         {
                             Id = 2,
-                            CreatedAt = new DateTime(2025, 12, 24, 2, 44, 5, 858, DateTimeKind.Utc).AddTicks(8965),
+                            CreatedAt = new DateTime(2025, 12, 23, 21, 15, 46, 558, DateTimeKind.Utc).AddTicks(2323),
                             Description = "Cardiovascular and aerobic exercises",
                             Name = "Cardio"
                         },
                         new
                         {
                             Id = 3,
-                            CreatedAt = new DateTime(2025, 12, 24, 2, 44, 5, 858, DateTimeKind.Utc).AddTicks(8966),
+                            CreatedAt = new DateTime(2025, 12, 23, 21, 15, 46, 558, DateTimeKind.Utc).AddTicks(2324),
                             Description = "Stretching and mobility exercises",
                             Name = "Flexibility"
                         });
@@ -234,6 +237,49 @@ namespace FitnessTracker.Infrastructure.Migrations
                     b.HasIndex("ExerciseId");
 
                     b.ToTable("ExerciseSets");
+                });
+
+            modelBuilder.Entity("FitnessTracker.Core.Entities.PersonalRecord", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("AchievedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("AthleteId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ExerciseDefinitionId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ExerciseSetId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Reps")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Weight")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
+
+                    b.Property<int>("WorkoutId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AthleteId");
+
+                    b.HasIndex("ExerciseDefinitionId");
+
+                    b.HasIndex("ExerciseSetId");
+
+                    b.HasIndex("WorkoutId");
+
+                    b.ToTable("PersonalRecords");
                 });
 
             modelBuilder.Entity("FitnessTracker.Core.Entities.ProgressPhoto", b =>
@@ -446,6 +492,41 @@ namespace FitnessTracker.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Exercise");
+                });
+
+            modelBuilder.Entity("FitnessTracker.Core.Entities.PersonalRecord", b =>
+                {
+                    b.HasOne("FitnessTracker.Core.Entities.Athlete", "Athlete")
+                        .WithMany()
+                        .HasForeignKey("AthleteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FitnessTracker.Core.Entities.ExerciseDefinition", "ExerciseDefinition")
+                        .WithMany()
+                        .HasForeignKey("ExerciseDefinitionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FitnessTracker.Core.Entities.ExerciseSet", "ExerciseSet")
+                        .WithMany()
+                        .HasForeignKey("ExerciseSetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FitnessTracker.Core.Entities.Workout", "Workout")
+                        .WithMany()
+                        .HasForeignKey("WorkoutId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Athlete");
+
+                    b.Navigation("ExerciseDefinition");
+
+                    b.Navigation("ExerciseSet");
+
+                    b.Navigation("Workout");
                 });
 
             modelBuilder.Entity("FitnessTracker.Core.Entities.ProgressPhoto", b =>
