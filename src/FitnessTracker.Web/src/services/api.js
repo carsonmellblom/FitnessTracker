@@ -237,6 +237,15 @@ export const templatesApi = {
     },
 };
 
+// Personal Records API
+export const personalRecordsApi = {
+    getAll: async () => {
+        const response = await fetch(`${API_BASE_URL}/personalrecords`);
+        if (!response.ok) throw new Error('Failed to fetch personal records');
+        return response.json();
+    },
+};
+
 // Helper to get full image URL
 export const getImageUrl = (path) => {
     if (!path) return null;

@@ -5,6 +5,7 @@ import Templates from './pages/Templates';
 import Photos from './pages/Photos';
 import Calendar from './pages/Calendar';
 import Exercises from './pages/Exercises';
+import PersonalRecords from './pages/PersonalRecords';
 import './App.css';
 
 function App() {
@@ -44,6 +45,12 @@ function App() {
                 Exercises
               </NavLink>
               <NavLink
+                to="/records"
+                className={({ isActive }) => `nav - link ${isActive ? 'active' : ''} `}
+              >
+                Records
+              </NavLink>
+              <NavLink
                 to="/calendar"
                 className={({ isActive }) => `nav - link ${isActive ? 'active' : ''} `}
               >
@@ -65,6 +72,7 @@ function App() {
             <Route path="/workouts" element={<Workouts />} />
             <Route path="/templates" element={<Templates />} />
             <Route path="/exercises" element={<Exercises />} />
+            <Route path="/records" element={<PersonalRecords />} />
             <Route path="/calendar" element={<Calendar />} />
             <Route path="/photos" element={<Photos />} />
           </Routes>
