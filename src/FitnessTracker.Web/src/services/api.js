@@ -121,6 +121,16 @@ export const photosApi = {
         });
         if (!response.ok) throw new Error('Failed to delete photo');
     },
+
+    updateDate: async (id, photoTakenAt) => {
+        const response = await fetch(`${API_BASE_URL}/photos/${id}/date`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ photoTakenAt }),
+        });
+        if (!response.ok) throw new Error('Failed to update photo date');
+        return response.json();
+    },
 };
 
 // Exercise Definitions API

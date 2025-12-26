@@ -141,12 +141,35 @@ public class PhotosController : ControllerBase
         OriginalFileName = photo.OriginalFileName,
         ImageUrl = photo.ImagePath,
         ThumbnailUrl = photo.ThumbnailPath,
+        CroppedImageUrl = photo.CroppedImagePath != null ? $"/uploads/{photo.CroppedImagePath}" : null,
         ProcessingStatus = photo.ProcessingStatus.ToString(),
         ProcessingError = photo.ProcessingError,
         BodyAnalysis = photo.BodyAnalysisJson,
         UploadedAt = photo.UploadedAt,
+        PhotoTakenAt = photo.PhotoTakenAt,
         ProcessedAt = photo.ProcessedAt
     };
+
+    [HttpPut("{id}/date")]
+    public async Task<IActionResult> UpdatePhotoDate(int id, [FromBody] UpdatePhotoDateRequest request)
+    {
+        var photo = await _photoRepository.GetByIdAsync(id);
+        if (photo == null)
+        {
+            return NotFound();
+        }
+
+        photo.PhotoTakenAt = request.PhotoTakenAt;
+        await _photoRepository.UpdateAsync(photo);
+
+        _logger.LogInformation("Updated photo {PhotoId} date to {Date}", id, request.PhotoTakenAt);
+        return Ok(MapToDto(photo));
+    }
+}
+
+public record UpdatePhotoDateRequest
+{
+    public DateTime PhotoTakenAt { get; init; }
 }
 
 public record PhotoDto
@@ -155,9 +178,11 @@ public record PhotoDto
     public string OriginalFileName { get; init; } = string.Empty;
     public string ImageUrl { get; init; } = string.Empty;
     public string? ThumbnailUrl { get; init; }
+    public string? CroppedImageUrl { get; init; }
     public string ProcessingStatus { get; init; } = string.Empty;
     public string? ProcessingError { get; init; }
     public string? BodyAnalysis { get; init; }
     public DateTime UploadedAt { get; init; }
+    public DateTime? PhotoTakenAt { get; init; }
     public DateTime? ProcessedAt { get; init; }
 }

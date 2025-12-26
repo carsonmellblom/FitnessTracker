@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { photosApi, getImageUrl } from '../services/api';
+import LandmarkOverlay from '../components/LandmarkOverlay';
 
 function Photos() {
     const [photos, setPhotos] = useState([]);
@@ -9,7 +10,11 @@ function Photos() {
     const [selectedPhoto, setSelectedPhoto] = useState(null);
     const [sortBy, setSortBy] = useState('date-desc');
     const [filterPose, setFilterPose] = useState('all');
+    const [viewMode, setViewMode] = useState('original'); // 'original', 'landmarks', 'cropped'
+    const [editingDate, setEditingDate] = useState(false);
+    const [newDate, setNewDate] = useState('');
     const fileInputRef = useRef(null);
+    const modalImageRef = useRef(null);
 
     useEffect(() => {
         loadPhotos();
@@ -34,6 +39,19 @@ function Photos() {
                 ? JSON.parse(photo.bodyAnalysis)
                 : photo.bodyAnalysis;
             return analysis?.body_detection?.pose_type || null;
+        } catch {
+            return null;
+        }
+    };
+
+    // Extract landmarks from photo's body analysis
+    const getLandmarks = (photo) => {
+        if (!photo?.bodyAnalysis) return null;
+        try {
+            const analysis = typeof photo.bodyAnalysis === 'string'
+                ? JSON.parse(photo.bodyAnalysis)
+                : photo.bodyAnalysis;
+            return analysis?.body_detection?.landmarks || null;
         } catch {
             return null;
         }
@@ -121,6 +139,19 @@ function Photos() {
             loadPhotos();
         } catch (error) {
             console.error('Failed to delete photo:', error);
+        }
+    };
+
+    const handleUpdateDate = async () => {
+        if (!selectedPhoto || !newDate) return;
+        try {
+            await photosApi.updateDate(selectedPhoto.id, newDate);
+            setEditingDate(false);
+            loadPhotos();
+            // Update selectedPhoto with new date
+            setSelectedPhoto({ ...selectedPhoto, photoTakenAt: newDate });
+        } catch (error) {
+            console.error('Failed to update photo date:', error);
         }
     };
 
@@ -352,20 +383,61 @@ function Photos() {
                         </div>
 
                         <div className="modal-body">
-                            <img
-                                src={getImageUrl(selectedPhoto.imageUrl)}
-                                alt={selectedPhoto.originalFileName}
-                                style={{
-                                    width: '100%',
-                                    maxHeight: '400px',
-                                    objectFit: 'contain',
-                                    borderRadius: 'var(--radius-md)',
-                                    marginBottom: '1rem',
-                                }}
-                                onError={(e) => {
-                                    e.target.src = 'https://via.placeholder.com/600x400?text=Image+Not+Found';
-                                }}
-                            />
+                            {/* Image toggle buttons */}
+                            {(getLandmarks(selectedPhoto) || selectedPhoto.croppedImageUrl) && (
+                                <div style={{ marginBottom: '0.5rem', display: 'flex', gap: '0.5rem' }}>
+                                    <button
+                                        className={`btn btn-sm ${viewMode === 'original' ? 'btn-primary' : 'btn-secondary'}`}
+                                        onClick={() => setViewMode('original')}
+                                    >
+                                        📷 Original
+                                    </button>
+                                    {getLandmarks(selectedPhoto) && (
+                                        <button
+                                            className={`btn btn-sm ${viewMode === 'landmarks' ? 'btn-primary' : 'btn-secondary'}`}
+                                            onClick={() => setViewMode('landmarks')}
+                                        >
+                                            🦴 Landmarks
+                                        </button>
+                                    )}
+                                    {selectedPhoto.croppedImageUrl && (
+                                        <button
+                                            className={`btn btn-sm ${viewMode === 'cropped' ? 'btn-primary' : 'btn-secondary'}`}
+                                            onClick={() => setViewMode('cropped')}
+                                        >
+                                            ✂️ Cropped
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                            <div style={{ position: 'relative', display: 'inline-block', width: '100%' }}>
+                                <img
+                                    ref={modalImageRef}
+                                    src={getImageUrl(
+                                        viewMode === 'cropped' && selectedPhoto.croppedImageUrl
+                                            ? selectedPhoto.croppedImageUrl
+                                            : selectedPhoto.imageUrl
+                                    )}
+                                    alt={selectedPhoto.originalFileName}
+                                    style={{
+                                        width: '100%',
+                                        maxHeight: '400px',
+                                        objectFit: 'contain',
+                                        borderRadius: 'var(--radius-md)',
+                                        marginBottom: '1rem',
+                                    }}
+                                    onError={(e) => {
+                                        e.target.src = 'https://via.placeholder.com/600x400?text=Image+Not+Found';
+                                    }}
+                                />
+                                {viewMode === 'landmarks' && (
+                                    <LandmarkOverlay
+                                        landmarks={getLandmarks(selectedPhoto)}
+                                        imageRef={modalImageRef}
+                                        visible={true}
+                                    />
+                                )}
+                            </div>
 
                             <div className="grid grid-2" style={{ gap: '1rem' }}>
                                 <div>
@@ -380,6 +452,46 @@ function Photos() {
                                         {new Date(selectedPhoto.uploadedAt).toLocaleString()}
                                     </span>
                                 </div>
+                            </div>
+
+                            {/* Photo Taken Date */}
+                            <div style={{ marginTop: '1rem' }}>
+                                <div className="card-subtitle" style={{ marginBottom: '0.25rem' }}>
+                                    Photo Taken
+                                    {!editingDate && (
+                                        <button
+                                            className="btn btn-xs btn-secondary"
+                                            style={{ marginLeft: '0.5rem' }}
+                                            onClick={() => {
+                                                setEditingDate(true);
+                                                setNewDate(selectedPhoto.photoTakenAt
+                                                    ? new Date(selectedPhoto.photoTakenAt).toISOString().slice(0, 16)
+                                                    : new Date().toISOString().slice(0, 16));
+                                            }}
+                                        >
+                                            ✏️ Edit
+                                        </button>
+                                    )}
+                                </div>
+                                {editingDate ? (
+                                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                        <input
+                                            type="datetime-local"
+                                            className="form-input"
+                                            style={{ maxWidth: '250px' }}
+                                            value={newDate}
+                                            onChange={(e) => setNewDate(e.target.value)}
+                                        />
+                                        <button className="btn btn-sm btn-primary" onClick={handleUpdateDate}>Save</button>
+                                        <button className="btn btn-sm btn-secondary" onClick={() => setEditingDate(false)}>Cancel</button>
+                                    </div>
+                                ) : (
+                                    <span>
+                                        {selectedPhoto.photoTakenAt
+                                            ? new Date(selectedPhoto.photoTakenAt).toLocaleString()
+                                            : <em style={{ color: 'var(--text-muted)' }}>Not set (using upload date)</em>}
+                                    </span>
+                                )}
                             </div>
 
                             {selectedPhoto.processingError && (
