@@ -1,13 +1,16 @@
 """
 Photo Processor Module
-Handles thumbnail generation and body composition analysis
+Handles thumbnail generation and body composition analysis with MediaPipe pose detection
 """
 import json
+import math
 import os
 from datetime import datetime
 from io import BytesIO
 from PIL import Image
 import numpy as np
+import cv2
+import mediapipe as mp
 
 from config import THUMBNAIL_SIZE, UPLOADS_PATH
 
@@ -42,7 +45,7 @@ def process_photo(image_path: str, photo_id: int) -> dict:
             thumbnail_path = generate_thumbnail(img, image_path, photo_id)
             result['thumbnail_path'] = thumbnail_path
             
-            # Perform body composition analysis
+            # Perform body composition analysis with pose detection
             body_analysis = analyze_body_composition(img)
             body_analysis['original_dimensions'] = {
                 'width': original_size[0],
@@ -55,7 +58,7 @@ def process_photo(image_path: str, photo_id: int) -> dict:
             
     except Exception as e:
         result['error'] = str(e)
-        print(f"Error processing photo {photo_id}: {e}")
+        print(f"Error processing photo {photo_id}: {e}", flush=True)
     
     return result
 
@@ -87,21 +90,19 @@ def generate_thumbnail(img: Image.Image, original_path: str, photo_id: int) -> s
         thumbnail = thumbnail.convert('RGB')
     thumbnail.save(thumbnail_path, 'JPEG', quality=85)
     
-    print(f"Generated thumbnail for photo {photo_id}: {thumbnail_path}")
+    print(f"Generated thumbnail for photo {photo_id}: {thumbnail_path}", flush=True)
     return f"/uploads/{thumbnail_name}"
 
 
 def analyze_body_composition(img: Image.Image) -> dict:
     """
-    Perform basic body composition analysis on the image.
-    This is a simplified analysis - in production, you would use
-    a proper ML model like MediaPipe or OpenPose.
+    Perform body composition analysis on the image using MediaPipe pose detection.
     
     Args:
         img: PIL Image object
         
     Returns:
-        dict with analysis results
+        dict with analysis results including pose detection
     """
     # Convert to numpy array for analysis
     img_array = np.array(img.convert('RGB'))
@@ -113,9 +114,8 @@ def analyze_body_composition(img: Image.Image) -> dict:
     # Color distribution analysis
     r_mean, g_mean, b_mean = np.mean(img_array, axis=(0, 1))
     
-    # Detect dominant colors (simplified)
-    # In a real app, you'd use skin tone detection for body analysis
-    skin_tone_detected = detect_skin_tones(img_array)
+    # Perform pose detection
+    pose_result = analyze_pose(img_array)
     
     # Calculate image quality score
     quality_score = calculate_quality_score(img_array, brightness, contrast)
@@ -133,33 +133,234 @@ def analyze_body_composition(img: Image.Image) -> dict:
             'blue_mean': round(float(b_mean), 2)
         },
         'body_detection': {
-            'skin_tones_detected': bool(skin_tone_detected),
-            'pose_detected': False,  # Would require ML model
-            'landmarks': []  # Would contain body landmarks with ML
+            'pose_detected': pose_result['pose_detected'],
+            'pose_type': pose_result.get('pose_type'),
+            'landmark_count': pose_result.get('landmark_count', 0),
+            'confidence': pose_result.get('confidence', 0),
+            'landmarks': pose_result.get('landmarks', [])
         },
-        'recommendations': generate_recommendations(quality_score, brightness)
+        'recommendations': generate_recommendations(quality_score, brightness, pose_result['pose_detected'])
     }
     
     return analysis
 
 
-def detect_skin_tones(img_array: np.ndarray) -> bool:
+def detect_face_present(img_array: np.ndarray) -> dict:
     """
-    Simple skin tone detection based on color ranges.
+    Use MediaPipe Face Detection to definitively detect if a face is visible.
+    This is more reliable than pose landmark visibility for front/back detection.
+    
+    Args:
+        img_array: RGB numpy array of the image
+        
+    Returns:
+        dict with face_detected (bool) and confidence (float)
     """
-    # Convert to HSV-like analysis
-    r, g, b = img_array[:,:,0], img_array[:,:,1], img_array[:,:,2]
+    mp_face = mp.solutions.face_detection
     
-    # Simple skin color detection (RGB ranges for various skin tones)
-    skin_mask = (
-        (r > 95) & (g > 40) & (b > 20) &
-        ((np.maximum(r, np.maximum(g, b)) - np.minimum(r, np.minimum(g, b))) > 15) &
-        (np.abs(r.astype(int) - g.astype(int)) > 15) &
-        (r > g) & (r > b)
-    )
+    try:
+        with mp_face.FaceDetection(
+            model_selection=1,  # 0 for close-range, 1 for full-range (up to 5m)
+            min_detection_confidence=0.5
+        ) as face_detection:
+            results = face_detection.process(img_array)
+            
+            if results.detections:
+                # Face detected - get the best confidence
+                best_confidence = max(d.score[0] for d in results.detections)
+                print(f"  FACE DETECTION - Face found with confidence: {best_confidence:.2f}", flush=True)
+                return {
+                    'face_detected': True,
+                    'confidence': float(best_confidence),
+                    'face_count': len(results.detections)
+                }
+            else:
+                print(f"  FACE DETECTION - No face detected (person likely facing away)", flush=True)
+                return {
+                    'face_detected': False,
+                    'confidence': 0,
+                    'face_count': 0
+                }
+    except Exception as e:
+        print(f"  FACE DETECTION - Error: {e}", flush=True)
+        return {
+            'face_detected': False,
+            'confidence': 0,
+            'face_count': 0,
+            'error': str(e)
+        }
+
+
+def analyze_pose(img_array: np.ndarray) -> dict:
+    """
+    Detect body pose using MediaPipe and classify bodybuilding poses.
     
-    skin_percentage = np.sum(skin_mask) / skin_mask.size * 100
-    return skin_percentage > 10  # At least 10% skin tones detected
+    Args:
+        img_array: RGB numpy array of the image
+        
+    Returns:
+        dict with pose detection results
+    """
+    mp_pose = mp.solutions.pose
+    
+    try:
+        with mp_pose.Pose(
+            static_image_mode=True,
+            model_complexity=2,
+            min_detection_confidence=0.5,
+            min_tracking_confidence=0.5
+        ) as pose:
+            # MediaPipe expects RGB
+            results = pose.process(img_array)
+            
+            if not results.pose_landmarks:
+                return {
+                    'pose_detected': False,
+                    'landmarks': [],
+                    'pose_type': None,
+                    'landmark_count': 0,
+                    'confidence': 0
+                }
+            
+            # Extract landmarks
+            landmarks = []
+            total_visibility = 0
+            for idx, lm in enumerate(results.pose_landmarks.landmark):
+                landmarks.append({
+                    'id': idx,
+                    'x': round(float(lm.x), 4),
+                    'y': round(float(lm.y), 4),
+                    'z': round(float(lm.z), 4),
+                    'visibility': round(float(lm.visibility), 2)
+                })
+                total_visibility += lm.visibility
+            
+            avg_confidence = total_visibility / len(landmarks) if landmarks else 0
+            
+            # First, use dedicated face detection to determine orientation
+            face_result = detect_face_present(img_array)
+            facing_camera = face_result['face_detected']
+            
+            # Classify bodybuilding pose using face detection result
+            pose_type = classify_bodybuilding_pose(landmarks, facing_camera)
+            
+            print(f"Pose detected: {pose_type} (confidence: {avg_confidence:.2f})", flush=True)
+            
+            return {
+                'pose_detected': True,
+                'landmarks': landmarks,
+                'pose_type': pose_type,
+                'landmark_count': len(landmarks),
+                'confidence': round(float(avg_confidence), 2)
+            }
+            
+    except Exception as e:
+        print(f"Pose detection error: {e}", flush=True)
+        return {
+            'pose_detected': False,
+            'landmarks': [],
+            'pose_type': None,
+            'landmark_count': 0,
+            'confidence': 0,
+            'error': str(e)
+        }
+
+
+def classify_bodybuilding_pose(landmarks: list, facing_camera: bool) -> str:
+    """
+    Classify the detected pose into common bodybuilding poses.
+    
+    Args:
+        landmarks: List of pose landmarks from MediaPipe
+        facing_camera: Whether face detection found a face (True = front, False = back)
+    
+    MediaPipe landmark indices:
+    - 11, 12: Left/Right shoulder
+    - 13, 14: Left/Right elbow
+    - 15, 16: Left/Right wrist
+    - 23, 24: Left/Right hip
+    """
+    if len(landmarks) < 25:
+        return "Unknown"
+    
+    # Key body landmarks for pose classification
+    left_shoulder = landmarks[11]
+    right_shoulder = landmarks[12]
+    left_elbow = landmarks[13]
+    right_elbow = landmarks[14]
+    left_wrist = landmarks[15]
+    right_wrist = landmarks[16]
+    
+    print(f"  POSE CLASSIFICATION - facing_camera={facing_camera}", flush=True)
+    
+    # Calculate arm angles
+    left_arm_angle = calculate_angle(left_shoulder, left_elbow, left_wrist)
+    right_arm_angle = calculate_angle(right_shoulder, right_elbow, right_wrist)
+    
+    # Check arm elevation (wrist above shoulder = arms raised)
+    left_arm_raised = left_wrist['y'] < left_shoulder['y']
+    right_arm_raised = right_wrist['y'] < right_shoulder['y']
+    
+    # Check if elbows are bent (angle < 120 degrees)
+    left_elbow_bent = left_arm_angle < 120
+    right_elbow_bent = right_arm_angle < 120
+    
+    # Classification logic
+    
+    # Double Biceps: Both arms raised and bent
+    if left_arm_raised and right_arm_raised and left_elbow_bent and right_elbow_bent:
+        if facing_camera:
+            return "Front Double Biceps"
+        else:
+            return "Rear Double Biceps"
+    
+    # Lat Spread: Arms raised but straight/wide
+    elif left_arm_raised and right_arm_raised and not left_elbow_bent and not right_elbow_bent:
+        if facing_camera:
+            return "Front Lat Spread"
+        else:
+            return "Rear Lat Spread"
+    
+    # Side poses: One arm bent, one straight
+    elif (left_elbow_bent and not right_elbow_bent) or (right_elbow_bent and not left_elbow_bent):
+        return "Side Chest"
+    
+    # Most Muscular: Both arms tightly contracted in front
+    elif left_arm_angle < 90 and right_arm_angle < 90 and facing_camera:
+        return "Most Muscular"
+    
+    # Hands Clasped: Wrists close together
+    elif abs(left_wrist['x'] - right_wrist['x']) < 0.1:
+        # Wrists close together in front
+        return "Hands Clasped"
+    
+    else:
+        return "Standing Pose"
+
+
+def calculate_angle(a: dict, b: dict, c: dict) -> float:
+    """
+    Calculate the angle at point b given three landmark points.
+    
+    Args:
+        a, b, c: Landmark dicts with 'x' and 'y' keys
+        
+    Returns:
+        Angle in degrees at point b
+    """
+    ba = (a['x'] - b['x'], a['y'] - b['y'])
+    bc = (c['x'] - b['x'], c['y'] - b['y'])
+    
+    dot = ba[0] * bc[0] + ba[1] * bc[1]
+    mag_ba = math.sqrt(ba[0]**2 + ba[1]**2)
+    mag_bc = math.sqrt(bc[0]**2 + bc[1]**2)
+    
+    if mag_ba * mag_bc == 0:
+        return 0
+    
+    cos_angle = dot / (mag_ba * mag_bc)
+    cos_angle = max(-1, min(1, cos_angle))  # Clamp for numerical stability
+    return math.degrees(math.acos(cos_angle))
 
 
 def calculate_quality_score(img_array: np.ndarray, brightness: float, contrast: float) -> str:
@@ -187,7 +388,7 @@ def calculate_quality_score(img_array: np.ndarray, brightness: float, contrast: 
         return 'poor'
 
 
-def generate_recommendations(quality_score: str, brightness: float) -> list:
+def generate_recommendations(quality_score: str, brightness: float, pose_detected: bool) -> list:
     """
     Generate recommendations for better progress photos.
     """
@@ -201,7 +402,10 @@ def generate_recommendations(quality_score: str, brightness: float) -> list:
             
     if quality_score == 'poor':
         recommendations.append("Consider using a higher resolution camera")
-        
+    
+    if not pose_detected:
+        recommendations.append("No body pose detected - ensure your full body is visible in the frame")
+    
     if not recommendations:
         recommendations.append("Great photo quality! Keep it up!")
         

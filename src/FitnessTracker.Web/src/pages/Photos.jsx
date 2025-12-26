@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { photosApi, getImageUrl } from '../services/api';
 
 function Photos() {
@@ -7,6 +7,8 @@ function Photos() {
     const [uploading, setUploading] = useState(false);
     const [dragOver, setDragOver] = useState(false);
     const [selectedPhoto, setSelectedPhoto] = useState(null);
+    const [sortBy, setSortBy] = useState('date-desc');
+    const [filterPose, setFilterPose] = useState('all');
     const fileInputRef = useRef(null);
 
     useEffect(() => {
@@ -23,6 +25,57 @@ function Photos() {
             setLoading(false);
         }
     };
+
+    // Extract pose type from photo's body analysis
+    const getPoseType = (photo) => {
+        if (!photo.bodyAnalysis) return null;
+        try {
+            const analysis = typeof photo.bodyAnalysis === 'string'
+                ? JSON.parse(photo.bodyAnalysis)
+                : photo.bodyAnalysis;
+            return analysis?.body_detection?.pose_type || null;
+        } catch {
+            return null;
+        }
+    };
+
+    // Get unique pose types for filter dropdown
+    const availablePoses = useMemo(() => {
+        const poses = new Set();
+        photos.forEach(photo => {
+            const pose = getPoseType(photo);
+            if (pose) poses.add(pose);
+        });
+        return Array.from(poses).sort();
+    }, [photos]);
+
+    // Filter and sort photos
+    const filteredAndSortedPhotos = useMemo(() => {
+        let result = [...photos];
+
+        // Filter by pose type
+        if (filterPose !== 'all') {
+            result = result.filter(photo => getPoseType(photo) === filterPose);
+        }
+
+        // Sort
+        result.sort((a, b) => {
+            switch (sortBy) {
+                case 'date-desc':
+                    return new Date(b.uploadedAt) - new Date(a.uploadedAt);
+                case 'date-asc':
+                    return new Date(a.uploadedAt) - new Date(b.uploadedAt);
+                case 'pose':
+                    const poseA = getPoseType(a) || 'zzz';
+                    const poseB = getPoseType(b) || 'zzz';
+                    return poseA.localeCompare(poseB);
+                default:
+                    return 0;
+            }
+        });
+
+        return result;
+    }, [photos, sortBy, filterPose]);
 
     const handleUpload = async (files) => {
         if (!files || files.length === 0) return;
@@ -99,8 +152,19 @@ function Photos() {
 
                     {analysis.body_detection && (
                         <div style={{ marginBottom: '0.75rem' }}>
-                            <div className="card-subtitle" style={{ marginBottom: '0.25rem' }}>Body Detection</div>
-                            <span>{analysis.body_detection.skin_tones_detected ? '✅ Detected' : '❌ Not detected'}</span>
+                            <div className="card-subtitle" style={{ marginBottom: '0.25rem' }}>Pose Detection</div>
+                            {analysis.body_detection.pose_detected ? (
+                                <div>
+                                    <span className="badge badge-completed" style={{ marginRight: '0.5rem' }}>
+                                        {analysis.body_detection.pose_type || 'Detected'}
+                                    </span>
+                                    <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                                        {analysis.body_detection.landmark_count} landmarks • {Math.round((analysis.body_detection.confidence || 0) * 100)}% confidence
+                                    </span>
+                                </div>
+                            ) : (
+                                <span style={{ color: 'var(--text-secondary)' }}>❌ No pose detected</span>
+                            )}
                         </div>
                     )}
 
@@ -142,7 +206,7 @@ function Photos() {
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
-                style={{ marginBottom: '2rem' }}
+                style={{ marginBottom: '1.5rem' }}
             >
                 <input
                     ref={fileInputRef}
@@ -171,6 +235,46 @@ function Photos() {
                 )}
             </div>
 
+            {/* Filter and Sort Controls */}
+            {photos.length > 0 && (
+                <div className="filter-bar">
+                    <div className="filter-group">
+                        <label htmlFor="sort-select">Sort by:</label>
+                        <select
+                            id="sort-select"
+                            className="filter-select"
+                            value={sortBy}
+                            onChange={(e) => setSortBy(e.target.value)}
+                        >
+                            <option value="date-desc">Date (Newest)</option>
+                            <option value="date-asc">Date (Oldest)</option>
+                            <option value="pose">Pose Type</option>
+                        </select>
+                    </div>
+
+                    <div className="filter-group">
+                        <label htmlFor="filter-select">Filter:</label>
+                        <select
+                            id="filter-select"
+                            className="filter-select"
+                            value={filterPose}
+                            onChange={(e) => setFilterPose(e.target.value)}
+                        >
+                            <option value="all">All Poses ({photos.length})</option>
+                            {availablePoses.map(pose => (
+                                <option key={pose} value={pose}>
+                                    {pose} ({photos.filter(p => getPoseType(p) === pose).length})
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="filter-count">
+                        Showing {filteredAndSortedPhotos.length} of {photos.length} photos
+                    </div>
+                </div>
+            )}
+
             {/* Photo Grid */}
             {photos.length === 0 ? (
                 <div className="card">
@@ -180,31 +284,52 @@ function Photos() {
                         <p>Upload your first progress photo to start tracking your transformation!</p>
                     </div>
                 </div>
+            ) : filteredAndSortedPhotos.length === 0 ? (
+                <div className="card">
+                    <div className="empty-state">
+                        <div className="empty-state-icon">🔍</div>
+                        <h3>No photos match your filter</h3>
+                        <p>Try selecting a different pose type or clear the filter.</p>
+                        <button className="btn btn-primary" onClick={() => setFilterPose('all')}>
+                            Show All Photos
+                        </button>
+                    </div>
+                </div>
             ) : (
                 <div className="photo-grid">
-                    {photos.map((photo) => (
-                        <div
-                            key={photo.id}
-                            className="photo-card"
-                            onClick={() => setSelectedPhoto(photo)}
-                        >
-                            <img
-                                src={getImageUrl(photo.thumbnailUrl || photo.imageUrl)}
-                                alt={photo.originalFileName}
-                                onError={(e) => {
-                                    e.target.src = 'https://via.placeholder.com/300?text=Image';
-                                }}
-                            />
-                            <div className="photo-overlay">
-                                <span className={`badge badge-${photo.processingStatus.toLowerCase()}`}>
-                                    {photo.processingStatus}
-                                </span>
-                                <div style={{ marginTop: '0.5rem', fontSize: '0.875rem' }}>
-                                    {new Date(photo.uploadedAt).toLocaleDateString()}
+                    {filteredAndSortedPhotos.map((photo) => {
+                        const poseType = getPoseType(photo);
+                        return (
+                            <div
+                                key={photo.id}
+                                className="photo-card"
+                                onClick={() => setSelectedPhoto(photo)}
+                            >
+                                <img
+                                    src={getImageUrl(photo.thumbnailUrl || photo.imageUrl)}
+                                    alt={photo.originalFileName}
+                                    onError={(e) => {
+                                        e.target.src = 'https://via.placeholder.com/300?text=Image';
+                                    }}
+                                />
+                                <div className="photo-overlay">
+                                    {poseType && (
+                                        <span className="badge badge-pose">
+                                            {poseType}
+                                        </span>
+                                    )}
+                                    {!poseType && (
+                                        <span className={`badge badge-${photo.processingStatus.toLowerCase()}`}>
+                                            {photo.processingStatus}
+                                        </span>
+                                    )}
+                                    <div className="photo-date">
+                                        {new Date(photo.uploadedAt).toLocaleDateString()}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
 
