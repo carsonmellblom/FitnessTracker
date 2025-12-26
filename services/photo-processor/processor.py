@@ -133,7 +133,7 @@ def analyze_body_composition(img: Image.Image) -> dict:
             'blue_mean': round(float(b_mean), 2)
         },
         'body_detection': {
-            'skin_tones_detected': skin_tone_detected,
+            'skin_tones_detected': bool(skin_tone_detected),
             'pose_detected': False,  # Would require ML model
             'landmarks': []  # Would contain body landmarks with ML
         },

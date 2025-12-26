@@ -102,7 +102,7 @@ def process_message(ch, method, properties, body):
         ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
     except Exception as e:
         print(f"Error processing message: {e}")
-        ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
+        ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 
 
 def connect_to_rabbitmq():
@@ -134,9 +134,9 @@ def connect_to_rabbitmq():
 
 def main():
     """Main entry point for the photo processing service."""
-    print("Starting Photo Processing Service...")
-    print(f"RabbitMQ: {RABBITMQ_HOST}:{RABBITMQ_PORT}")
-    print(f"PostgreSQL: {DB_HOST}:{DB_PORT}/{DB_NAME}")
+    print("Starting Photo Processing Service...", flush=True)
+    print(f"RabbitMQ: {RABBITMQ_HOST}:{RABBITMQ_PORT}", flush=True)
+    print(f"PostgreSQL: {DB_HOST}:{DB_PORT}/{DB_NAME}", flush=True)
     
     connection = connect_to_rabbitmq()
     channel = connection.channel()

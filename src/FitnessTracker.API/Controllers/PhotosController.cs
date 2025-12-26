@@ -12,7 +12,7 @@ public class PhotosController : ControllerBase
     private readonly IMessagePublisher _messagePublisher;
     private readonly ILogger<PhotosController> _logger;
     private readonly IWebHostEnvironment _environment;
-    
+
     // Default athlete ID (no auth for now)
     private const int DefaultAthleteId = 1;
 
@@ -90,7 +90,9 @@ public class PhotosController : ControllerBase
         // Queue for processing
         try
         {
-            await _messagePublisher.PublishPhotoForProcessingAsync(created.Id, filePath);
+            // Use container path (/app/uploads) instead of Windows path for Docker
+            var containerPath = $"/app/uploads/{fileName}";
+            await _messagePublisher.PublishPhotoForProcessingAsync(created.Id, containerPath);
             _logger.LogInformation("Queued photo {PhotoId} for processing", created.Id);
         }
         catch (Exception ex)

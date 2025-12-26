@@ -59,6 +59,15 @@ app.UseAuthorization();
 // Serve static files for uploaded photos
 app.UseStaticFiles();
 
+// Serve uploaded photos from the /uploads path
+var uploadsPath = Path.Combine(app.Environment.ContentRootPath, "uploads");
+Directory.CreateDirectory(uploadsPath); // Ensure folder exists
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(uploadsPath),
+    RequestPath = "/uploads"
+});
+
 app.MapControllers();
 
 // Ensure database is created and migrations are applied
