@@ -37,13 +37,17 @@ def update_photo_status(photo_id: int, status: str, result: dict = None):
                     UPDATE "ProgressPhotos"
                     SET "ProcessingStatus" = %s,
                         "ThumbnailPath" = %s,
+                        "CroppedImagePath" = %s,
                         "BodyAnalysisJson" = %s,
+                        "PhotoTakenAt" = %s,
                         "ProcessedAt" = NOW()
                     WHERE "Id" = %s
                 ''', (
                     2,  # Completed enum value
                     result.get('thumbnail_path'),
+                    result.get('cropped_path'),
                     json.dumps(result.get('body_analysis')),
+                    result.get('photo_taken_at'),
                     photo_id
                 ))
             elif status == 'Failed':

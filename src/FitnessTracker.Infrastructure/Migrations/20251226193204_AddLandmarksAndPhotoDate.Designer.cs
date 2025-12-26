@@ -3,6 +3,7 @@ using System;
 using FitnessTracker.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FitnessTracker.Infrastructure.Migrations
 {
     [DbContext(typeof(FitnessDbContext))]
-    partial class FitnessDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251226193204_AddLandmarksAndPhotoDate")]
+    partial class AddLandmarksAndPhotoDate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -54,7 +57,7 @@ namespace FitnessTracker.Infrastructure.Migrations
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTime(2025, 12, 26, 20, 19, 48, 215, DateTimeKind.Utc).AddTicks(1730),
+                            CreatedAt = new DateTime(2025, 12, 26, 19, 32, 4, 414, DateTimeKind.Utc).AddTicks(8474),
                             Email = "athlete@fitnesstracker.local",
                             Name = "Default Athlete"
                         });
@@ -126,7 +129,7 @@ namespace FitnessTracker.Infrastructure.Migrations
                         {
                             Id = 1,
                             CategoryId = 1,
-                            CreatedAt = new DateTime(2025, 12, 26, 20, 19, 48, 215, DateTimeKind.Utc).AddTicks(1707),
+                            CreatedAt = new DateTime(2025, 12, 26, 19, 32, 4, 414, DateTimeKind.Utc).AddTicks(8451),
                             Description = "Compound chest exercise",
                             Name = "Bench Press",
                             PrimaryMuscleGroup = "Chest"
@@ -135,7 +138,7 @@ namespace FitnessTracker.Infrastructure.Migrations
                         {
                             Id = 2,
                             CategoryId = 1,
-                            CreatedAt = new DateTime(2025, 12, 26, 20, 19, 48, 215, DateTimeKind.Utc).AddTicks(1709),
+                            CreatedAt = new DateTime(2025, 12, 26, 19, 32, 4, 414, DateTimeKind.Utc).AddTicks(8455),
                             Description = "Compound leg exercise",
                             Name = "Squat",
                             PrimaryMuscleGroup = "Legs"
@@ -144,7 +147,7 @@ namespace FitnessTracker.Infrastructure.Migrations
                         {
                             Id = 3,
                             CategoryId = 1,
-                            CreatedAt = new DateTime(2025, 12, 26, 20, 19, 48, 215, DateTimeKind.Utc).AddTicks(1710),
+                            CreatedAt = new DateTime(2025, 12, 26, 19, 32, 4, 414, DateTimeKind.Utc).AddTicks(8456),
                             Description = "Compound full body/back exercise",
                             Name = "Deadlift",
                             PrimaryMuscleGroup = "Back"
@@ -153,7 +156,7 @@ namespace FitnessTracker.Infrastructure.Migrations
                         {
                             Id = 4,
                             CategoryId = 1,
-                            CreatedAt = new DateTime(2025, 12, 26, 20, 19, 48, 215, DateTimeKind.Utc).AddTicks(1711),
+                            CreatedAt = new DateTime(2025, 12, 26, 19, 32, 4, 414, DateTimeKind.Utc).AddTicks(8457),
                             Description = "Compound shoulder exercise",
                             Name = "Overhead Press",
                             PrimaryMuscleGroup = "Shoulders"
@@ -188,21 +191,21 @@ namespace FitnessTracker.Infrastructure.Migrations
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTime(2025, 12, 26, 20, 19, 48, 215, DateTimeKind.Utc).AddTicks(1589),
+                            CreatedAt = new DateTime(2025, 12, 26, 19, 32, 4, 414, DateTimeKind.Utc).AddTicks(8337),
                             Description = "Resistance and weight training exercises",
                             Name = "Strength Training"
                         },
                         new
                         {
                             Id = 2,
-                            CreatedAt = new DateTime(2025, 12, 26, 20, 19, 48, 215, DateTimeKind.Utc).AddTicks(1592),
+                            CreatedAt = new DateTime(2025, 12, 26, 19, 32, 4, 414, DateTimeKind.Utc).AddTicks(8340),
                             Description = "Cardiovascular and aerobic exercises",
                             Name = "Cardio"
                         },
                         new
                         {
                             Id = 3,
-                            CreatedAt = new DateTime(2025, 12, 26, 20, 19, 48, 215, DateTimeKind.Utc).AddTicks(1593),
+                            CreatedAt = new DateTime(2025, 12, 26, 19, 32, 4, 414, DateTimeKind.Utc).AddTicks(8341),
                             Description = "Stretching and mobility exercises",
                             Name = "Flexibility"
                         });
@@ -250,13 +253,13 @@ namespace FitnessTracker.Infrastructure.Migrations
                     b.Property<string>("BodyAnalysisJson")
                         .HasColumnType("jsonb");
 
-                    b.Property<string>("CroppedImagePath")
-                        .HasColumnType("text");
-
                     b.Property<string>("ImagePath")
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<string>("LandmarksImagePath")
+                        .HasColumnType("text");
 
                     b.Property<string>("OriginalFileName")
                         .IsRequired()
