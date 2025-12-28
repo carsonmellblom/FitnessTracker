@@ -270,7 +270,7 @@ export const personalRecordsApi = {
 // Helper to get full image URL
 export const getImageUrl = (path) => {
     if (!path) return null;
-    // Derive the base URL from the API base URL (remove '/api' suffix)
-    const baseUrl = API_BASE_URL.replace(/\/api$/, '');
+    // Derive the base URL from the API base URL (remove '/api/v1' or '/api' suffix)
+    const baseUrl = API_BASE_URL.replace(/\/api\/v\d+$/, '').replace(/\/api$/, '');
     return `${baseUrl}${path}`;
 };
