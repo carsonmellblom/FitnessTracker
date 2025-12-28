@@ -31,19 +31,19 @@ export default function Register() {
             setError('Passwords do not match');
             return false;
         }
-        if (!/(?=.*[a-z])/.test(formData.password)) {
+        if (!/[a-z]/.test(formData.password)) {
             setError('Password must contain at least one lowercase letter');
             return false;
         }
-        if (!/(?=.*[A-Z])/.test(formData.password)) {
+        if (!/[A-Z]/.test(formData.password)) {
             setError('Password must contain at least one uppercase letter');
             return false;
         }
-        if (!/(?=.*\d)/.test(formData.password)) {
+        if (!/\d/.test(formData.password)) {
             setError('Password must contain at least one number');
             return false;
         }
-        if (!/(?=.*[@$!%*?&])/.test(formData.password)) {
+        if (!/[@$!%*?&]/.test(formData.password)) {
             setError('Password must contain at least one special character (@$!%*?&)');
             return false;
         }
