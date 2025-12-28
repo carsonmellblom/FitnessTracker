@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using FitnessTracker.API.Filters;
+using Asp.Versioning;
 using FitnessTracker.Core.Entities;
 using FitnessTracker.Core.Interfaces;
 using FitnessTracker.Infrastructure.Data;
@@ -11,7 +12,8 @@ using Microsoft.EntityFrameworkCore;
 namespace FitnessTracker.API.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/v{version:apiVersion}/[controller]")]
+[ApiVersion("1.0")]
 [Authorize]
 public class WorkoutsController : ControllerBase
 {

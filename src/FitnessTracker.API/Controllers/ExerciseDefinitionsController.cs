@@ -1,11 +1,13 @@
 using FitnessTracker.Core.Entities;
 using FitnessTracker.Core.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Asp.Versioning;
 
 namespace FitnessTracker.API.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/v{version:apiVersion}/[controller]")]
+[ApiVersion("1.0")]
 public class ExerciseDefinitionsController : ControllerBase
 {
     private readonly IWorkoutRepository _workoutRepository;
