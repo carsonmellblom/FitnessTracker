@@ -2,6 +2,8 @@
 
 This is an example project I have created 
 
+This code is not production ready 
+
 Description:
 
 Fitness Tracking web application utilizing a microservices architecture with ASP.NET Core 8, React, and PostgreSQL. Implemented secure user authentication using JWT with ASP.NET Identity and httpOnly cookies, including resource-level authorization filters to enforce data isolation. 
@@ -279,5 +281,8 @@ dotnet test
 - Check Docker container logs: `docker-compose logs photo-processor`
 - Verify uploads folder is mounted correctly
 - Check RabbitMQ queue: http://localhost:15672/#/queues
+
+
+This code is purely for my own purposes and is not intended to be used by anyone else
 
 
