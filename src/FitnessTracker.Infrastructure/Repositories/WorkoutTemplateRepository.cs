@@ -17,10 +17,10 @@ public class WorkoutTemplateRepository : IWorkoutTemplateRepository
         _logger = logger;
     }
 
-    public async Task<IEnumerable<WorkoutTemplate>> GetAllAsync(int athleteId)
+    public async Task<IEnumerable<WorkoutTemplate>> GetAllAsync(string userId)
     {
         return await _context.WorkoutTemplates
-            .Where(t => t.AthleteId == athleteId)
+            .Where(t => t.UserId == userId)
             .Include(t => t.Exercises)
                 .ThenInclude(e => e.ExerciseDefinition)
             .Include(t => t.Exercises)

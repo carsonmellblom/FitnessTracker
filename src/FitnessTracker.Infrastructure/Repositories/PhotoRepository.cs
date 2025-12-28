@@ -14,10 +14,10 @@ public class PhotoRepository : IPhotoRepository
         _context = context;
     }
 
-    public async Task<IEnumerable<ProgressPhoto>> GetAllAsync(int athleteId)
+    public async Task<IEnumerable<ProgressPhoto>> GetAllAsync(string userId)
     {
         return await _context.ProgressPhotos
-            .Where(p => p.AthleteId == athleteId)
+            .Where(p => p.UserId == userId)
             .OrderByDescending(p => p.UploadedAt)
             .ToListAsync();
     }

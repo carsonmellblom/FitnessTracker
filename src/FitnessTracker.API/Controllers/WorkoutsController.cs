@@ -1,6 +1,10 @@
+using System.Security.Claims;
+using FitnessTracker.API.Filters;
 using FitnessTracker.Core.Entities;
 using FitnessTracker.Core.Interfaces;
 using FitnessTracker.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,32 +12,36 @@ namespace FitnessTracker.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class WorkoutsController : ControllerBase
 {
     private readonly IWorkoutRepository _workoutRepository;
     private readonly IWorkoutTemplateRepository _templateRepository;
     private readonly FitnessDbContext _context;
+    private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<WorkoutsController> _logger;
-
-    // Default athlete ID (no auth for now)
-    private const int DefaultAthleteId = 1;
 
     public WorkoutsController(
         IWorkoutRepository workoutRepository,
         IWorkoutTemplateRepository templateRepository,
         FitnessDbContext context,
+        UserManager<ApplicationUser> userManager,
         ILogger<WorkoutsController> logger)
     {
         _workoutRepository = workoutRepository;
         _templateRepository = templateRepository;
         _context = context;
+        _userManager = userManager;
         _logger = logger;
     }
+
+    private string GetUserId() => User.FindFirstValue(ClaimTypes.NameIdentifier) ?? throw new UnauthorizedAccessException();
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<WorkoutDto>>> GetWorkouts()
     {
-        var workouts = await _workoutRepository.GetAllAsync(DefaultAthleteId);
+        var userId = GetUserId();
+        var workouts = await _workoutRepository.GetAllAsync(userId);
         var dtos = new List<WorkoutDto>();
         foreach (var workout in workouts)
         {
@@ -43,6 +51,7 @@ public class WorkoutsController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [ValidateResourceOwnership]
     public async Task<ActionResult<WorkoutDto>> GetWorkout(int id)
     {
         var workout = await _workoutRepository.GetByIdAsync(id);
@@ -59,9 +68,10 @@ public class WorkoutsController : ControllerBase
         var template = await _templateRepository.GetByIdAsync(templateId);
         if (template == null) return NotFound("Template not found");
 
+        var userId = GetUserId();
         var workout = new Workout
         {
-            AthleteId = DefaultAthleteId,
+            UserId = userId,
             Title = template.Title,
             Description = template.Description,
             WorkoutDate = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc),
@@ -87,9 +97,10 @@ public class WorkoutsController : ControllerBase
     {
         var workoutDate = DateTime.SpecifyKind(request.WorkoutDate, DateTimeKind.Utc);
 
+        var userId = GetUserId();
         var workout = new Workout
         {
-            AthleteId = DefaultAthleteId,
+            UserId = userId,
             Title = "",  // No title needed - date is displayed in UI
             Description = request.Description,
             DurationMinutes = 0,  // Duration not tracked for individual workouts
@@ -133,6 +144,7 @@ public class WorkoutsController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [ValidateResourceOwnership]
     public async Task<ActionResult<WorkoutDto>> UpdateWorkout(int id, UpdateWorkoutRequest request)
     {
         var existing = await _workoutRepository.GetByIdAsync(id);
@@ -147,7 +159,7 @@ public class WorkoutsController : ControllerBase
         var updatedWorkout = new Workout
         {
             Id = id,
-            AthleteId = existing.AthleteId,
+            UserId = existing.UserId,
             Title = "",  // No title needed - date is displayed in UI
             Description = request.Description,
             DurationMinutes = 0,  // Duration not tracked for individual workouts
@@ -193,6 +205,7 @@ public class WorkoutsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [ValidateResourceOwnership]
     public async Task<IActionResult> DeleteWorkout(int id)
     {
         var existing = await _workoutRepository.GetByIdAsync(id);
@@ -307,7 +320,7 @@ public class WorkoutsController : ControllerBase
             var prSetIds = await _context.ExerciseSets
                 .Include(s => s.Exercise)
                 .Where(s => s.Exercise.ExerciseDefinitionId == e.ExerciseDefinitionId &&
-                           s.Exercise.Workout.AthleteId == DefaultAthleteId &&
+                           s.Exercise.Workout.UserId == GetUserId() &&
                            s.Weight != null && s.Reps != null && s.Reps > 0)
                 .GroupBy(s => s.Reps)
                 .Select(g => g.OrderByDescending(s => s.Weight).ThenBy(s => s.Id).First().Id)

@@ -10,8 +10,12 @@
   },
   "RabbitMQ": {
     "Host": "localhost",
-    "Port": 5672,
-    "Username": "guest",
-    "Password": "guest"
+    "Port": 12345,
+    "Username": "username",
+    "Password": "password"
+  },
+  "CookieSettings": {
+    "SecureCookies": false,
+    "SameSiteMode": "Lax"
   }
 }

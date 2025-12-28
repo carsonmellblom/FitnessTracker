@@ -1,21 +1,32 @@
-const API_BASE_URL = 'http://localhost:5067/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5067/api';
+
+// Helper to include credentials (cookies) in all requests
+const fetchWithAuth = (url, options = {}) => {
+    return fetch(url, {
+        ...options,
+        credentials: 'include', // Always include cookies for auth
+        headers: {
+            ...options.headers,
+        },
+    });
+};
 
 // Workout API
 export const workoutsApi = {
     getAll: async () => {
-        const response = await fetch(`${API_BASE_URL}/workouts`);
+        const response = await fetchWithAuth(`${API_BASE_URL}/workouts`);
         if (!response.ok) throw new Error('Failed to fetch workouts');
         return response.json();
     },
 
     getById: async (id) => {
-        const response = await fetch(`${API_BASE_URL}/workouts/${id}`);
+        const response = await fetchWithAuth(`${API_BASE_URL}/workouts/${id}`);
         if (!response.ok) throw new Error('Failed to fetch workout');
         return response.json();
     },
 
     create: async (workout) => {
-        const response = await fetch(`${API_BASE_URL}/workouts`, {
+        const response = await fetchWithAuth(`${API_BASE_URL}/workouts`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(workout),
@@ -28,7 +39,7 @@ export const workoutsApi = {
     },
 
     update: async (id, workout) => {
-        const response = await fetch(`${API_BASE_URL}/workouts/${id}`, {
+        const response = await fetchWithAuth(`${API_BASE_URL}/workouts/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(workout),
@@ -41,13 +52,13 @@ export const workoutsApi = {
     },
 
     delete: async (id) => {
-        const response = await fetch(`${API_BASE_URL}/workouts/${id}`, {
+        const response = await fetchWithAuth(`${API_BASE_URL}/workouts/${id}`, {
             method: 'DELETE',
         });
         if (!response.ok) throw new Error('Failed to delete workout');
     },
     logFromTemplate: async (templateId) => {
-        const response = await fetch(`${API_BASE_URL}/workouts/from-template/${templateId}`, {
+        const response = await fetchWithAuth(`${API_BASE_URL}/workouts/from-template/${templateId}`, {
             method: 'POST',
         });
         if (!response.ok) throw new Error('Failed to log workout from template');
@@ -56,7 +67,7 @@ export const workoutsApi = {
 
     // Individual set operations
     addSet: async (workoutId, exerciseId, setData) => {
-        const response = await fetch(`${API_BASE_URL}/workouts/${workoutId}/exercises/${exerciseId}/sets`, {
+        const response = await fetchWithAuth(`${API_BASE_URL}/workouts/${workoutId}/exercises/${exerciseId}/sets`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(setData),
@@ -69,7 +80,7 @@ export const workoutsApi = {
     },
 
     updateSet: async (workoutId, exerciseId, setId, setData) => {
-        const response = await fetch(`${API_BASE_URL}/workouts/${workoutId}/exercises/${exerciseId}/sets/${setId}`, {
+        const response = await fetchWithAuth(`${API_BASE_URL}/workouts/${workoutId}/exercises/${exerciseId}/sets/${setId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(setData),
@@ -82,7 +93,7 @@ export const workoutsApi = {
     },
 
     deleteSet: async (workoutId, exerciseId, setId) => {
-        const response = await fetch(`${API_BASE_URL}/workouts/${workoutId}/exercises/${exerciseId}/sets/${setId}`, {
+        const response = await fetchWithAuth(`${API_BASE_URL}/workouts/${workoutId}/exercises/${exerciseId}/sets/${setId}`, {
             method: 'DELETE',
         });
         if (!response.ok) throw new Error('Failed to delete set');
@@ -92,13 +103,13 @@ export const workoutsApi = {
 // Photos API
 export const photosApi = {
     getAll: async () => {
-        const response = await fetch(`${API_BASE_URL}/photos`);
+        const response = await fetchWithAuth(`${API_BASE_URL}/photos`);
         if (!response.ok) throw new Error('Failed to fetch photos');
         return response.json();
     },
 
     getById: async (id) => {
-        const response = await fetch(`${API_BASE_URL}/photos/${id}`);
+        const response = await fetchWithAuth(`${API_BASE_URL}/photos/${id}`);
         if (!response.ok) throw new Error('Failed to fetch photo');
         return response.json();
     },
@@ -107,7 +118,7 @@ export const photosApi = {
         const formData = new FormData();
         formData.append('file', file);
 
-        const response = await fetch(`${API_BASE_URL}/photos`, {
+        const response = await fetchWithAuth(`${API_BASE_URL}/photos`, {
             method: 'POST',
             body: formData,
         });
@@ -116,14 +127,14 @@ export const photosApi = {
     },
 
     delete: async (id) => {
-        const response = await fetch(`${API_BASE_URL}/photos/${id}`, {
+        const response = await fetchWithAuth(`${API_BASE_URL}/photos/${id}`, {
             method: 'DELETE',
         });
         if (!response.ok) throw new Error('Failed to delete photo');
     },
 
     updateDate: async (id, photoTakenAt) => {
-        const response = await fetch(`${API_BASE_URL}/photos/${id}/date`, {
+        const response = await fetchWithAuth(`${API_BASE_URL}/photos/${id}/date`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ photoTakenAt }),
@@ -136,17 +147,17 @@ export const photosApi = {
 // Exercise Definitions API
 export const exerciseDefinitionsApi = {
     getAll: async () => {
-        const response = await fetch(`${API_BASE_URL}/exercisedefinitions`);
+        const response = await fetchWithAuth(`${API_BASE_URL}/exercisedefinitions`);
         if (!response.ok) throw new Error('Failed to fetch exercise definitions');
         return response.json();
     },
     getById: async (id) => {
-        const response = await fetch(`${API_BASE_URL}/exercisedefinitions/${id}`);
+        const response = await fetchWithAuth(`${API_BASE_URL}/exercisedefinitions/${id}`);
         if (!response.ok) throw new Error('Failed to fetch exercise definition');
         return response.json();
     },
     create: async (data) => {
-        const response = await fetch(`${API_BASE_URL}/exercisedefinitions`, {
+        const response = await fetchWithAuth(`${API_BASE_URL}/exercisedefinitions`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data),
@@ -155,7 +166,7 @@ export const exerciseDefinitionsApi = {
         return response.json();
     },
     update: async (id, data) => {
-        const response = await fetch(`${API_BASE_URL}/exercisedefinitions/${id}`, {
+        const response = await fetchWithAuth(`${API_BASE_URL}/exercisedefinitions/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data),
@@ -164,7 +175,7 @@ export const exerciseDefinitionsApi = {
         return response.json();
     },
     delete: async (id) => {
-        const response = await fetch(`${API_BASE_URL}/exercisedefinitions/${id}`, {
+        const response = await fetchWithAuth(`${API_BASE_URL}/exercisedefinitions/${id}`, {
             method: 'DELETE',
         });
         if (!response.ok) throw new Error('Failed to delete exercise definition');
@@ -174,17 +185,17 @@ export const exerciseDefinitionsApi = {
 // Exercise Definition Categories API
 export const categoriesApi = {
     getAll: async () => {
-        const response = await fetch(`${API_BASE_URL}/exercisedefinitioncategories`);
+        const response = await fetchWithAuth(`${API_BASE_URL}/exercisedefinitioncategories`);
         if (!response.ok) throw new Error('Failed to fetch categories');
         return response.json();
     },
     getById: async (id) => {
-        const response = await fetch(`${API_BASE_URL}/exercisedefinitioncategories/${id}`);
+        const response = await fetchWithAuth(`${API_BASE_URL}/exercisedefinitioncategories/${id}`);
         if (!response.ok) throw new Error('Failed to fetch category');
         return response.json();
     },
     create: async (data) => {
-        const response = await fetch(`${API_BASE_URL}/exercisedefinitioncategories`, {
+        const response = await fetchWithAuth(`${API_BASE_URL}/exercisedefinitioncategories`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data),
@@ -193,7 +204,7 @@ export const categoriesApi = {
         return response.json();
     },
     update: async (id, data) => {
-        const response = await fetch(`${API_BASE_URL}/exercisedefinitioncategories/${id}`, {
+        const response = await fetchWithAuth(`${API_BASE_URL}/exercisedefinitioncategories/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data),
@@ -202,7 +213,7 @@ export const categoriesApi = {
         return response.json();
     },
     delete: async (id) => {
-        const response = await fetch(`${API_BASE_URL}/exercisedefinitioncategories/${id}`, {
+        const response = await fetchWithAuth(`${API_BASE_URL}/exercisedefinitioncategories/${id}`, {
             method: 'DELETE',
         });
         if (!response.ok) throw new Error('Failed to delete category');
@@ -212,17 +223,17 @@ export const categoriesApi = {
 // Workout Templates API
 export const templatesApi = {
     getAll: async () => {
-        const response = await fetch(`${API_BASE_URL}/workouttemplates`);
+        const response = await fetchWithAuth(`${API_BASE_URL}/workouttemplates`);
         if (!response.ok) throw new Error('Failed to fetch templates');
         return response.json();
     },
     getById: async (id) => {
-        const response = await fetch(`${API_BASE_URL}/workouttemplates/${id}`);
+        const response = await fetchWithAuth(`${API_BASE_URL}/workouttemplates/${id}`);
         if (!response.ok) throw new Error('Failed to fetch template');
         return response.json();
     },
     create: async (data) => {
-        const response = await fetch(`${API_BASE_URL}/workouttemplates`, {
+        const response = await fetchWithAuth(`${API_BASE_URL}/workouttemplates`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data),
@@ -231,7 +242,7 @@ export const templatesApi = {
         return response.json();
     },
     update: async (id, data) => {
-        const response = await fetch(`${API_BASE_URL}/workouttemplates/${id}`, {
+        const response = await fetchWithAuth(`${API_BASE_URL}/workouttemplates/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data),
@@ -240,7 +251,7 @@ export const templatesApi = {
         return response.json();
     },
     delete: async (id) => {
-        const response = await fetch(`${API_BASE_URL}/workouttemplates/${id}`, {
+        const response = await fetchWithAuth(`${API_BASE_URL}/workouttemplates/${id}`, {
             method: 'DELETE',
         });
         if (!response.ok) throw new Error('Failed to delete template');
@@ -250,7 +261,7 @@ export const templatesApi = {
 // Personal Records API
 export const personalRecordsApi = {
     getAll: async () => {
-        const response = await fetch(`${API_BASE_URL}/personalrecords`);
+        const response = await fetchWithAuth(`${API_BASE_URL}/personalrecords`);
         if (!response.ok) throw new Error('Failed to fetch personal records');
         return response.json();
     },
@@ -259,5 +270,7 @@ export const personalRecordsApi = {
 // Helper to get full image URL
 export const getImageUrl = (path) => {
     if (!path) return null;
-    return `http://localhost:5067${path}`;
+    // Derive the base URL from the API base URL (remove '/api' suffix)
+    const baseUrl = API_BASE_URL.replace(/\/api$/, '');
+    return `${baseUrl}${path}`;
 };

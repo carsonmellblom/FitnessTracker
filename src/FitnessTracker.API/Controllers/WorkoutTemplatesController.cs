@@ -1,31 +1,44 @@
+using System.Security.Claims;
+using FitnessTracker.API.Filters;
 using FitnessTracker.Core.Entities;
 using FitnessTracker.Core.Interfaces;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FitnessTracker.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class WorkoutTemplatesController : ControllerBase
 {
     private readonly IWorkoutTemplateRepository _templateRepository;
+    private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<WorkoutTemplatesController> _logger;
-    private const int DefaultAthleteId = 1;
 
-    public WorkoutTemplatesController(IWorkoutTemplateRepository templateRepository, ILogger<WorkoutTemplatesController> logger)
+    public WorkoutTemplatesController(
+        IWorkoutTemplateRepository templateRepository,
+        UserManager<ApplicationUser> userManager,
+        ILogger<WorkoutTemplatesController> logger)
     {
         _templateRepository = templateRepository;
+        _userManager = userManager;
         _logger = logger;
     }
+
+    private string GetUserId() => User.FindFirstValue(ClaimTypes.NameIdentifier) ?? throw new UnauthorizedAccessException();
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<WorkoutTemplateDto>>> GetTemplates()
     {
-        var templates = await _templateRepository.GetAllAsync(DefaultAthleteId);
+        var userId = GetUserId();
+        var templates = await _templateRepository.GetAllAsync(userId);
         return Ok(templates.Select(MapToDto));
     }
 
     [HttpGet("{id}")]
+    [ValidateResourceOwnership]
     public async Task<ActionResult<WorkoutTemplateDto>> GetTemplate(int id)
     {
         var template = await _templateRepository.GetByIdAsync(id);
@@ -36,9 +49,10 @@ public class WorkoutTemplatesController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<WorkoutTemplateDto>> CreateTemplate(CreateWorkoutTemplateRequest request)
     {
+        var userId = GetUserId();
         var template = new WorkoutTemplate
         {
-            AthleteId = DefaultAthleteId,
+            UserId = userId,
             Title = request.Title,
             Description = request.Description,
             Exercises = request.Exercises.Select((e, idx) => new TemplateExercise
@@ -60,12 +74,16 @@ public class WorkoutTemplatesController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [ValidateResourceOwnership]
     public async Task<ActionResult<WorkoutTemplateDto>> UpdateTemplate(int id, CreateWorkoutTemplateRequest request)
     {
+        var existing = await _templateRepository.GetByIdAsync(id);
+        if (existing == null) return NotFound();
+
         var template = new WorkoutTemplate
         {
             Id = id,
-            AthleteId = DefaultAthleteId,
+            UserId = existing.UserId,
             Title = request.Title,
             Description = request.Description,
             Exercises = request.Exercises.Select((e, idx) => new TemplateExercise
@@ -87,6 +105,7 @@ public class WorkoutTemplatesController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [ValidateResourceOwnership]
     public async Task<IActionResult> DeleteTemplate(int id)
     {
         await _templateRepository.DeleteAsync(id);

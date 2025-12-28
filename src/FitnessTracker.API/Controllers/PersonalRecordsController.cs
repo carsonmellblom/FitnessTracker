@@ -1,4 +1,8 @@
+using System.Security.Claims;
+using FitnessTracker.Core.Entities;
 using FitnessTracker.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -6,15 +10,19 @@ namespace FitnessTracker.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class PersonalRecordsController : ControllerBase
 {
     private readonly FitnessDbContext _context;
-    private const int DefaultAthleteId = 1;
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    public PersonalRecordsController(FitnessDbContext context)
+    public PersonalRecordsController(FitnessDbContext context, UserManager<ApplicationUser> userManager)
     {
         _context = context;
+        _userManager = userManager;
     }
+
+    private string GetUserId() => User.FindFirstValue(ClaimTypes.NameIdentifier) ?? throw new UnauthorizedAccessException();
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<ExercisePRsDto>>> GetAllPRs()
@@ -25,7 +33,7 @@ public class PersonalRecordsController : ControllerBase
                 .ThenInclude(e => e.ExerciseDefinition)
             .Include(s => s.Exercise)
                 .ThenInclude(e => e.Workout)
-            .Where(s => s.Exercise.Workout.AthleteId == DefaultAthleteId &&
+            .Where(s => s.Exercise.Workout.UserId == GetUserId() &&
                        s.Weight != null && s.Reps != null && s.Reps > 0)
             .ToListAsync();
 

@@ -1,8 +1,15 @@
+using System.Text;
+using FitnessTracker.Core.Config;
+using FitnessTracker.Core.Entities;
 using FitnessTracker.Core.Interfaces;
 using FitnessTracker.Infrastructure.Data;
 using FitnessTracker.Infrastructure.Messaging;
 using FitnessTracker.Infrastructure.Repositories;
+using FitnessTracker.Infrastructure.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,11 +28,70 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<FitnessDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Register repositories, add as scoped because we want to use the same object for each request
-builder.Services.AddScoped<IAthleteRepository, AthleteRepository>();
+// Configure Identity
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+{
+    // Password settings
+    options.Password.RequireDigit = true;
+    options.Password.RequiredLength = 10;
+    options.Password.RequireNonAlphanumeric = true;
+    options.Password.RequireUppercase = true;
+    options.Password.RequireLowercase = true;
+
+    // User settings
+    options.User.RequireUniqueEmail = true;
+})
+.AddEntityFrameworkStores<FitnessDbContext>()
+.AddDefaultTokenProviders();
+
+// Configure JWT
+var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+builder.Services.Configure<JwtSettings>(jwtSettings);
+
+var secret = jwtSettings.Get<JwtSettings>()?.Secret ?? throw new InvalidOperationException("JWT Secret not configured");
+var key = Encoding.UTF8.GetBytes(secret);
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(key),
+        ValidateIssuer = true,
+        ValidIssuer = jwtSettings.Get<JwtSettings>()?.Issuer,
+        ValidateAudience = true,
+        ValidAudience = jwtSettings.Get<JwtSettings>()?.Audience,
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.Zero
+    };
+
+    // For httpOnly cookie support
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            // Check for token in cookie first
+            if (context.Request.Cookies.ContainsKey("accessToken"))
+            {
+                context.Token = context.Request.Cookies["accessToken"];
+            }
+            return Task.CompletedTask;
+        }
+    };
+});
+
+// Register repositories
 builder.Services.AddScoped<IWorkoutRepository, WorkoutRepository>();
 builder.Services.AddScoped<IWorkoutTemplateRepository, WorkoutTemplateRepository>();
 builder.Services.AddScoped<IPhotoRepository, PhotoRepository>();
+
+// Register services
+builder.Services.AddScoped<ITokenService, TokenService>();
 
 // Register RabbitMQ publisher, add as a singleton because we want to use the same connection for the entire application
 builder.Services.AddSingleton<IMessagePublisher, RabbitMqPublisher>();
@@ -39,7 +105,8 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins(allowedOrigins) // Use the array from config
               .AllowAnyHeader()
-              .AllowAnyMethod();
+              .AllowAnyMethod()
+              .AllowCredentials(); // Required for cookie authentication
     });
 });
 
@@ -54,6 +121,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("AllowReactApp");
 app.UseHttpsRedirection();
+app.UseAuthentication();
 app.UseAuthorization();
 
 // Serve static files for uploaded photos
