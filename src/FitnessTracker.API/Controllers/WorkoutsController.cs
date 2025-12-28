@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using FitnessTracker.API.Filters;
 using FitnessTracker.Core.Entities;
 using FitnessTracker.Core.Interfaces;
 using FitnessTracker.Infrastructure.Data;
@@ -50,6 +51,7 @@ public class WorkoutsController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [ValidateResourceOwnership]
     public async Task<ActionResult<WorkoutDto>> GetWorkout(int id)
     {
         var workout = await _workoutRepository.GetByIdAsync(id);
@@ -142,6 +144,7 @@ public class WorkoutsController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [ValidateResourceOwnership]
     public async Task<ActionResult<WorkoutDto>> UpdateWorkout(int id, UpdateWorkoutRequest request)
     {
         var existing = await _workoutRepository.GetByIdAsync(id);
@@ -202,6 +205,7 @@ public class WorkoutsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [ValidateResourceOwnership]
     public async Task<IActionResult> DeleteWorkout(int id)
     {
         var existing = await _workoutRepository.GetByIdAsync(id);

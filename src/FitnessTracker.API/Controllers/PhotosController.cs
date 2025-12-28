@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using FitnessTracker.API.Filters;
 using FitnessTracker.Core.Entities;
 using FitnessTracker.Core.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -43,6 +44,7 @@ public class PhotosController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [ValidateResourceOwnership]
     public async Task<ActionResult<PhotoDto>> GetPhoto(int id)
     {
         var photo = await _photoRepository.GetByIdAsync(id);
@@ -113,6 +115,7 @@ public class PhotosController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [ValidateResourceOwnership]
     public async Task<IActionResult> DeletePhoto(int id)
     {
         var photo = await _photoRepository.GetByIdAsync(id);
@@ -159,6 +162,7 @@ public class PhotosController : ControllerBase
     };
 
     [HttpPut("{id}/date")]
+    [ValidateResourceOwnership]
     public async Task<IActionResult> UpdatePhotoDate(int id, [FromBody] UpdatePhotoDateRequest request)
     {
         var photo = await _photoRepository.GetByIdAsync(id);

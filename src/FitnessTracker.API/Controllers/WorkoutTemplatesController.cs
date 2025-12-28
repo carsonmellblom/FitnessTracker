@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using FitnessTracker.API.Filters;
 using FitnessTracker.Core.Entities;
 using FitnessTracker.Core.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -37,6 +38,7 @@ public class WorkoutTemplatesController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [ValidateResourceOwnership]
     public async Task<ActionResult<WorkoutTemplateDto>> GetTemplate(int id)
     {
         var template = await _templateRepository.GetByIdAsync(id);
@@ -72,6 +74,7 @@ public class WorkoutTemplatesController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [ValidateResourceOwnership]
     public async Task<ActionResult<WorkoutTemplateDto>> UpdateTemplate(int id, CreateWorkoutTemplateRequest request)
     {
         var existing = await _templateRepository.GetByIdAsync(id);
@@ -102,6 +105,7 @@ public class WorkoutTemplatesController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [ValidateResourceOwnership]
     public async Task<IActionResult> DeleteTemplate(int id)
     {
         await _templateRepository.DeleteAsync(id);
