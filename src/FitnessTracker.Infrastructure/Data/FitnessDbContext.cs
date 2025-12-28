@@ -155,18 +155,19 @@ public class FitnessDbContext : IdentityDbContext<ApplicationUser>
         });
 
         // Seed exercise definition categories
+        var seedDate = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         modelBuilder.Entity<ExerciseDefinitionCategory>().HasData(
-            new ExerciseDefinitionCategory { Id = 1, Name = "Strength Training", Description = "Resistance and weight training exercises" },
-            new ExerciseDefinitionCategory { Id = 2, Name = "Cardio", Description = "Cardiovascular and aerobic exercises" },
-            new ExerciseDefinitionCategory { Id = 3, Name = "Flexibility", Description = "Stretching and mobility exercises" }
+            new ExerciseDefinitionCategory { Id = 1, Name = "Strength Training", Description = "Resistance and weight training exercises", CreatedAt = seedDate },
+            new ExerciseDefinitionCategory { Id = 2, Name = "Cardio", Description = "Cardiovascular and aerobic exercises", CreatedAt = seedDate },
+            new ExerciseDefinitionCategory { Id = 3, Name = "Flexibility", Description = "Stretching and mobility exercises", CreatedAt = seedDate }
         );
 
         // Seed some default exercises
         modelBuilder.Entity<ExerciseDefinition>().HasData(
-            new ExerciseDefinition { Id = 1, Name = "Bench Press", PrimaryMuscleGroup = "Chest", Description = "Compound chest exercise", CategoryId = 1 },
-            new ExerciseDefinition { Id = 2, Name = "Squat", PrimaryMuscleGroup = "Legs", Description = "Compound leg exercise", CategoryId = 1 },
-            new ExerciseDefinition { Id = 3, Name = "Deadlift", PrimaryMuscleGroup = "Back", Description = "Compound full body/back exercise", CategoryId = 1 },
-            new ExerciseDefinition { Id = 4, Name = "Overhead Press", PrimaryMuscleGroup = "Shoulders", Description = "Compound shoulder exercise", CategoryId = 1 }
+            new ExerciseDefinition { Id = 1, Name = "Bench Press", PrimaryMuscleGroup = "Chest", Description = "Compound chest exercise", CategoryId = 1, CreatedAt = seedDate },
+            new ExerciseDefinition { Id = 2, Name = "Squat", PrimaryMuscleGroup = "Legs", Description = "Compound leg exercise", CategoryId = 1, CreatedAt = seedDate },
+            new ExerciseDefinition { Id = 3, Name = "Deadlift", PrimaryMuscleGroup = "Back", Description = "Compound full body/back exercise", CategoryId = 1, CreatedAt = seedDate },
+            new ExerciseDefinition { Id = 4, Name = "Overhead Press", PrimaryMuscleGroup = "Shoulders", Description = "Compound shoulder exercise", CategoryId = 1, CreatedAt = seedDate }
         );
 
 
