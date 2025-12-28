@@ -77,7 +77,7 @@ public class ExerciseDefinitionCategoriesController : ControllerBase
         }
     }
 
-    [HttpPut("{id}")]
+    [HttpPatch("{id}")]
     public async Task<ActionResult<ExerciseDefinitionCategoryDto>> UpdateCategory(int id, UpdateExerciseDefinitionCategoryDto dto)
     {
         try

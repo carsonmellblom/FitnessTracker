@@ -88,7 +88,7 @@ public class ExerciseDefinitionsController : ControllerBase
         }
     }
 
-    [HttpPut("{id}")]
+    [HttpPatch("{id}")]
     public async Task<ActionResult<ExerciseDefinitionDto>> UpdateDefinition(int id, UpdateExerciseDefinitionDto dto)
     {
         try

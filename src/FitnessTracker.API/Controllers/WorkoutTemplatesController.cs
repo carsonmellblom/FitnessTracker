@@ -75,7 +75,7 @@ public class WorkoutTemplatesController : ControllerBase
         return CreatedAtAction(nameof(GetTemplate), new { id = created.Id }, MapToDto(created));
     }
 
-    [HttpPut("{id}")]
+    [HttpPatch("{id}")]
     [ValidateResourceOwnership]
     public async Task<ActionResult<WorkoutTemplateDto>> UpdateTemplate(int id, CreateWorkoutTemplateRequest request)
     {

@@ -40,7 +40,7 @@ export const workoutsApi = {
 
     update: async (id, workout) => {
         const response = await fetchWithAuth(`${API_BASE_URL}/workouts/${id}`, {
-            method: 'PUT',
+            method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(workout),
         });
@@ -81,7 +81,7 @@ export const workoutsApi = {
 
     updateSet: async (workoutId, exerciseId, setId, setData) => {
         const response = await fetchWithAuth(`${API_BASE_URL}/workouts/${workoutId}/exercises/${exerciseId}/sets/${setId}`, {
-            method: 'PUT',
+            method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(setData),
         });
@@ -135,7 +135,7 @@ export const photosApi = {
 
     updateDate: async (id, photoTakenAt) => {
         const response = await fetchWithAuth(`${API_BASE_URL}/photos/${id}/date`, {
-            method: 'PUT',
+            method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ photoTakenAt }),
         });
@@ -167,7 +167,7 @@ export const exerciseDefinitionsApi = {
     },
     update: async (id, data) => {
         const response = await fetchWithAuth(`${API_BASE_URL}/exercisedefinitions/${id}`, {
-            method: 'PUT',
+            method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data),
         });
@@ -205,7 +205,7 @@ export const categoriesApi = {
     },
     update: async (id, data) => {
         const response = await fetchWithAuth(`${API_BASE_URL}/exercisedefinitioncategories/${id}`, {
-            method: 'PUT',
+            method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data),
         });
@@ -243,7 +243,7 @@ export const templatesApi = {
     },
     update: async (id, data) => {
         const response = await fetchWithAuth(`${API_BASE_URL}/workouttemplates/${id}`, {
-            method: 'PUT',
+            method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data),
         });

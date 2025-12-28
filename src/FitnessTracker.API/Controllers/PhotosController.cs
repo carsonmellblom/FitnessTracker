@@ -163,7 +163,7 @@ public class PhotosController : ControllerBase
         ProcessedAt = photo.ProcessedAt
     };
 
-    [HttpPut("{id}/date")]
+    [HttpPatch("{id}/date")]
     [ValidateResourceOwnership]
     public async Task<IActionResult> UpdatePhotoDate(int id, [FromBody] UpdatePhotoDateRequest request)
     {
