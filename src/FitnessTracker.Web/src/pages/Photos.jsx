@@ -64,7 +64,7 @@ function Photos() {
             const pose = getPoseType(photo);
             if (pose) poses.add(pose);
         });
-        return Array.from(poses).sort();
+        return Array.from(poses).sort((a, b) => a.localeCompare(b));
     }, [photos]);
 
     // Filter and sort photos

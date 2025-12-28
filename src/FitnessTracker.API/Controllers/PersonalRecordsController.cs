@@ -16,12 +16,10 @@ namespace FitnessTracker.API.Controllers;
 public class PersonalRecordsController : ControllerBase
 {
     private readonly FitnessDbContext _context;
-    private readonly UserManager<ApplicationUser> _userManager;
 
-    public PersonalRecordsController(FitnessDbContext context, UserManager<ApplicationUser> userManager)
+    public PersonalRecordsController(FitnessDbContext context)
     {
         _context = context;
-        _userManager = userManager;
     }
 
     private string GetUserId() => User.FindFirstValue(ClaimTypes.NameIdentifier) ?? throw new UnauthorizedAccessException();
