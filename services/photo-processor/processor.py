@@ -5,7 +5,7 @@ Handles thumbnail generation and body composition analysis with MediaPipe pose d
 import json
 import math
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from io import BytesIO
 from PIL import Image
 import numpy as np
@@ -271,7 +271,7 @@ def analyze_body_composition(img: Image.Image) -> dict:
     quality_score = calculate_quality_score(img_array, brightness, contrast)
     
     analysis = {
-        'analyzed_at': datetime.utcnow().isoformat(),
+        'analyzed_at': datetime.now(timezone.utc).isoformat(),
         'image_quality': {
             'brightness': round(float(brightness), 2),
             'contrast': round(float(contrast), 2),
@@ -322,7 +322,7 @@ def analyze_body_composition_with_landmarks(img: Image.Image) -> tuple:
     quality_score = calculate_quality_score(img_array, brightness, contrast)
     
     analysis = {
-        'analyzed_at': datetime.utcnow().isoformat(),
+        'analyzed_at': datetime.now(timezone.utc).isoformat(),
         'image_quality': {
             'brightness': round(float(brightness), 2),
             'contrast': round(float(contrast), 2),
