@@ -16,37 +16,67 @@ Technologies: C#, .NET Core, React, PostgreSQL, Python, MediaPipe, RabbitMQ, Doc
 🏋️ FitnessTracker - Project Capabilities Summary
 Core Features:
 1. Workout Management
-✅ Workout Logging - Log workouts with exercises, sets, reps, and weight
-✅ Workout Templates - Create reusable workout templates
-✅ Template Copying - Create workouts from templates
-✅ Calendar View - View and manage workouts on a calendar interface
-✅ Exercise Reordering - Ability to reorder exercises within workouts
-✅ Duplicate Prevention - Prevents adding the same exercise twice in a workout
-2. Exercise & Category Management
-✅ Exercise Definitions - Create and manage custom exercises
-✅ Exercise Categories - Organize exercises by category (e.g., chest, back, legs)
-✅ Custom Exercise Library - Full CRUD operations for exercise management
-3. Personal Records (PRs)
-✅ PR Tracking - Automatically track personal bests per exercise
-✅ PR Display - Visual indicators showing when you achieve new PRs
-✅ Per-Rep PRs - Track best weight for each rep count (e.g., best 5-rep squat, best 8-rep squat)
-4. Progress Photos & AI Analysis
-✅ Photo Upload - Upload progress photos
-✅ Photo Processing - Automated background processing via Python microservice
-✅ Thumbnail Generation - Automatic thumbnail creation
-✅ Auto-Cropping - AI-powered cropping to focus on the subject
-✅ Pose Detection - Google MediaPipe-powered bodybuilding pose detection
-✅ Landmark Visualization - Display body landmarks overlay on photos
-✅ Landmark Toggle - Show/hide landmark overlays
-✅ Photo Gallery - View all progress photos with analysis
-5. Security & Authentication
-✅ JWT Authentication - Secure JWT-based auth with httpOnly cookies
-✅ User Registration & Login - Complete user management
-✅ Protected Routes - Frontend and backend route protection
-✅ Resource Ownership Validation - Users can only access their own data
-✅ Admin Support - Built-in admin role bypass for future admin features
-✅ Action Filters - Prevents unauthorized access to workouts, templates, and photos
-Technical Architecture:
+ 
+  ✅ Workout Logging - Log workouts with exercises, sets, reps, and weight
+
+  ✅ Workout Templates - Create reusable workout templates
+  
+  ✅ Template Copying - Create workouts from templates
+  
+  ✅ Calendar View - View and manage workouts on a calendar interface
+  
+  ✅ Exercise Reordering - Ability to reorder exercises within workouts
+  
+  ✅ Duplicate Prevention - Prevents adding the same exercise twice in a workout
+  
+3. Exercise & Category Management
+
+  ✅ Exercise Definitions - Create and manage custom exercises
+
+  ✅ Exercise Categories - Organize exercises by category (e.g., chest, back, legs)
+  
+  ✅ Custom Exercise Library - Full CRUD operations for exercise management
+  
+5. Personal Records (PRs)
+  
+  ✅ PR Tracking - Automatically track personal bests per exercise
+  
+  ✅ PR Display - Visual indicators showing when you achieve new PRs
+  
+  ✅ Per-Rep PRs - Track best weight for each rep count (e.g., best 5-rep squat, best 8-rep squat)
+  
+7. Progress Photos & AI Analysis
+
+  ✅ Photo Upload - Upload progress photos
+ 
+  ✅ Photo Processing - Automated background processing via Python microservice
+
+  ✅ Thumbnail Generation - Automatic thumbnail creation
+
+  ✅ Auto-Cropping - AI-powered cropping to focus on the subject
+  
+  ✅ Pose Detection - Google MediaPipe-powered bodybuilding pose detection
+ 
+  ✅ Landmark Visualization - Display body landmarks overlay on photos
+  
+  ✅ Landmark Toggle - Show/hide landmark overlays
+  
+  ✅ Photo Gallery - View all progress photos with analysis
+8. Security & Authentication
+ 
+  ✅ JWT Authentication - Secure JWT-based auth with httpOnly cookies
+ 
+  ✅ User Registration & Login - Complete user management
+ 
+  ✅ Protected Routes - Frontend and backend route protection
+ 
+  ✅ Resource Ownership Validation - Users can only access their own data
+  
+  ✅ Admin Support - Built-in admin role bypass for future admin features
+  
+  ✅ Action Filters - Prevents unauthorized access to workouts, templates, and photos
+  
+**Technical Architecture:**
 Frontend: React + Vite
 Backend: ASP.NET Core 8 (.NET)
 Database: PostgreSQL
