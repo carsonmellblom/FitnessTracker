@@ -20,20 +20,17 @@ public class WorkoutsController : ControllerBase
     private readonly IWorkoutRepository _workoutRepository;
     private readonly IWorkoutTemplateRepository _templateRepository;
     private readonly FitnessDbContext _context;
-    private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<WorkoutsController> _logger;
 
     public WorkoutsController(
         IWorkoutRepository workoutRepository,
         IWorkoutTemplateRepository templateRepository,
         FitnessDbContext context,
-        UserManager<ApplicationUser> userManager,
         ILogger<WorkoutsController> logger)
     {
         _workoutRepository = workoutRepository;
         _templateRepository = templateRepository;
         _context = context;
-        _userManager = userManager;
         _logger = logger;
     }
 

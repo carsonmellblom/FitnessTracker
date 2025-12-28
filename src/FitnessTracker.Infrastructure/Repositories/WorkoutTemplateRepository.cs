@@ -9,12 +9,10 @@ namespace FitnessTracker.Infrastructure.Repositories;
 public class WorkoutTemplateRepository : IWorkoutTemplateRepository
 {
     private readonly FitnessDbContext _context;
-    private readonly ILogger<WorkoutTemplateRepository> _logger;
 
-    public WorkoutTemplateRepository(FitnessDbContext context, ILogger<WorkoutTemplateRepository> logger)
+    public WorkoutTemplateRepository(FitnessDbContext context)
     {
         _context = context;
-        _logger = logger;
     }
 
     public async Task<IEnumerable<WorkoutTemplate>> GetAllAsync(string userId)

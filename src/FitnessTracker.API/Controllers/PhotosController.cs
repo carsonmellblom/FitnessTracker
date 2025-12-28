@@ -17,20 +17,17 @@ public class PhotosController : ControllerBase
 {
     private readonly IPhotoRepository _photoRepository;
     private readonly IMessagePublisher _messagePublisher;
-    private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<PhotosController> _logger;
     private readonly IWebHostEnvironment _environment;
 
     public PhotosController(
         IPhotoRepository photoRepository,
         IMessagePublisher messagePublisher,
-        UserManager<ApplicationUser> userManager,
         ILogger<PhotosController> logger,
         IWebHostEnvironment environment)
     {
         _photoRepository = photoRepository;
         _messagePublisher = messagePublisher;
-        _userManager = userManager;
         _logger = logger;
         _environment = environment;
     }

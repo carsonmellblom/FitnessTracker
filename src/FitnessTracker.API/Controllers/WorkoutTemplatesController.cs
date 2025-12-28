@@ -16,17 +16,11 @@ namespace FitnessTracker.API.Controllers;
 public class WorkoutTemplatesController : ControllerBase
 {
     private readonly IWorkoutTemplateRepository _templateRepository;
-    private readonly UserManager<ApplicationUser> _userManager;
-    private readonly ILogger<WorkoutTemplatesController> _logger;
 
     public WorkoutTemplatesController(
-        IWorkoutTemplateRepository templateRepository,
-        UserManager<ApplicationUser> userManager,
-        ILogger<WorkoutTemplatesController> logger)
+        IWorkoutTemplateRepository templateRepository)
     {
         _templateRepository = templateRepository;
-        _userManager = userManager;
-        _logger = logger;
     }
 
     private string GetUserId() => User.FindFirstValue(ClaimTypes.NameIdentifier) ?? throw new UnauthorizedAccessException();
