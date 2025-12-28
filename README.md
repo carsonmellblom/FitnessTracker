@@ -1,6 +1,60 @@
 # FitnessTracker
 
-A full-stack fitness tracking application for athletes to log workouts and track progress with photos.
+This is an example project I have created 
+
+Description:
+
+Fitness Tracking web application utilizing a microservices architecture with ASP.NET Core 8, React, and PostgreSQL. Implemented secure user authentication using JWT with ASP.NET Identity and httpOnly cookies, including resource-level authorization filters to enforce data isolation. 
+
+Built a Python-based microservice leveraging Google MediaPipe for AI-powered bodybuilding pose detection and automated progress photo analysis, including auto-cropping and landmark visualization. 
+
+Architected a scalable backend with Entity Framework Core and repository pattern, featuring workout logging with automatic personal record tracking, customizable exercise libraries, reusable workout templates, and a calendar-based interface. Integrated RabbitMQ for asynchronous photo processing and implemented Docker containerization for the ML microservice. 
+
+Technologies: C#, .NET Core, React, PostgreSQL, Python, MediaPipe, RabbitMQ, Docker, Entity Framework Core, ASP.NET Identity, JWT.
+
+
+🏋️ FitnessTracker - Project Capabilities Summary
+Core Features:
+1. Workout Management
+✅ Workout Logging - Log workouts with exercises, sets, reps, and weight
+✅ Workout Templates - Create reusable workout templates
+✅ Template Copying - Create workouts from templates
+✅ Calendar View - View and manage workouts on a calendar interface
+✅ Exercise Reordering - Ability to reorder exercises within workouts
+✅ Duplicate Prevention - Prevents adding the same exercise twice in a workout
+2. Exercise & Category Management
+✅ Exercise Definitions - Create and manage custom exercises
+✅ Exercise Categories - Organize exercises by category (e.g., chest, back, legs)
+✅ Custom Exercise Library - Full CRUD operations for exercise management
+3. Personal Records (PRs)
+✅ PR Tracking - Automatically track personal bests per exercise
+✅ PR Display - Visual indicators showing when you achieve new PRs
+✅ Per-Rep PRs - Track best weight for each rep count (e.g., best 5-rep squat, best 8-rep squat)
+4. Progress Photos & AI Analysis
+✅ Photo Upload - Upload progress photos
+✅ Photo Processing - Automated background processing via Python microservice
+✅ Thumbnail Generation - Automatic thumbnail creation
+✅ Auto-Cropping - AI-powered cropping to focus on the subject
+✅ Pose Detection - Google MediaPipe-powered bodybuilding pose detection
+✅ Landmark Visualization - Display body landmarks overlay on photos
+✅ Landmark Toggle - Show/hide landmark overlays
+✅ Photo Gallery - View all progress photos with analysis
+5. Security & Authentication
+✅ JWT Authentication - Secure JWT-based auth with httpOnly cookies
+✅ User Registration & Login - Complete user management
+✅ Protected Routes - Frontend and backend route protection
+✅ Resource Ownership Validation - Users can only access their own data
+✅ Admin Support - Built-in admin role bypass for future admin features
+✅ Action Filters - Prevents unauthorized access to workouts, templates, and photos
+Technical Architecture:
+Frontend: React + Vite
+Backend: ASP.NET Core 8 (.NET)
+Database: PostgreSQL
+Photo Processing: Python microservice (Docker)
+Message Queue: RabbitMQ
+Authentication: ASP.NET Identity + JWT
+AI/ML: Google MediaPipe for pose detection
+
 
 ## Architecture
 
