@@ -145,7 +145,7 @@ public class WorkoutsController : ControllerBase
         }
     }
 
-    [HttpPut("{id}")]
+    [HttpPatch("{id}")]
     [ValidateResourceOwnership]
     public async Task<ActionResult<WorkoutDto>> UpdateWorkout(int id, UpdateWorkoutRequest request)
     {
@@ -258,7 +258,7 @@ public class WorkoutsController : ControllerBase
         });
     }
 
-    [HttpPut("{workoutId}/exercises/{exerciseId}/sets/{setId}")]
+    [HttpPatch("{workoutId}/exercises/{exerciseId}/sets/{setId}")]
     public async Task<ActionResult<SetDto>> UpdateSet(int workoutId, int exerciseId, int setId, CreateSetRequest request)
     {
         var workout = await _workoutRepository.GetByIdAsync(workoutId);
