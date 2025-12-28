@@ -67,17 +67,10 @@ public class WorkoutRepository : IWorkoutRepository
             existingWorkout.Description = workout.Description;
             existingWorkout.WorkoutDate = workout.WorkoutDate;
 
-            // Delete existing exercises by ID (avoids EF tracking issues)
-            var existingExerciseIds = await _context.Exercises
+            // Delete existing exercises using EF Core's bulk delete (EF Core 7+)
+            await _context.Exercises
                 .Where(e => e.WorkoutId == workout.Id)
-                .Select(e => e.Id)
-                .ToListAsync();
-
-            if (existingExerciseIds.Any())
-            {
-                await _context.Database.ExecuteSqlRawAsync(
-                    $"DELETE FROM \"Exercises\" WHERE \"WorkoutId\" = {workout.Id}");
-            }
+                .ExecuteDeleteAsync();
 
             // Add new exercises
             foreach (var exercise in workout.Exercises)
