@@ -11,7 +11,7 @@ public enum PhotoProcessingStatus
 public class ProgressPhoto
 {
     public int Id { get; set; }
-    public int AthleteId { get; set; }
+    public string UserId { get; set; } = string.Empty;
     public string OriginalFileName { get; set; } = string.Empty;
     public string ImagePath { get; set; } = string.Empty;
     public string? ThumbnailPath { get; set; }
@@ -27,5 +27,5 @@ public class ProgressPhoto
     public DateTime? ProcessedAt { get; set; }
 
     // Navigation property
-    public Athlete Athlete { get; set; } = null!;
+    public ApplicationUser User { get; set; } = null!;
 }

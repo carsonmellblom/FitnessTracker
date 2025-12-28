@@ -4,7 +4,7 @@ namespace FitnessTracker.Core.Interfaces;
 
 public interface IWorkoutRepository
 {
-    Task<IEnumerable<Workout>> GetAllAsync(int athleteId);
+    Task<IEnumerable<Workout>> GetAllAsync(string userId);
     Task<Workout?> GetByIdAsync(int id);
     Task<Workout> CreateAsync(Workout workout);
     Task<Workout> UpdateAsync(Workout workout);

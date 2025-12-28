@@ -1,37 +1,44 @@
+using System.Security.Claims;
 using FitnessTracker.Core.Entities;
 using FitnessTracker.Core.Interfaces;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FitnessTracker.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class PhotosController : ControllerBase
 {
     private readonly IPhotoRepository _photoRepository;
     private readonly IMessagePublisher _messagePublisher;
+    private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<PhotosController> _logger;
     private readonly IWebHostEnvironment _environment;
-
-    // Default athlete ID (no auth for now)
-    private const int DefaultAthleteId = 1;
 
     public PhotosController(
         IPhotoRepository photoRepository,
         IMessagePublisher messagePublisher,
+        UserManager<ApplicationUser> userManager,
         ILogger<PhotosController> logger,
         IWebHostEnvironment environment)
     {
         _photoRepository = photoRepository;
         _messagePublisher = messagePublisher;
+        _userManager = userManager;
         _logger = logger;
         _environment = environment;
     }
 
+    private string GetUserId() => User.FindFirstValue(ClaimTypes.NameIdentifier) ?? throw new UnauthorizedAccessException();
+
     [HttpGet]
     public async Task<ActionResult<IEnumerable<PhotoDto>>> GetPhotos()
     {
-        var photos = await _photoRepository.GetAllAsync(DefaultAthleteId);
+        var userId = GetUserId();
+        var photos = await _photoRepository.GetAllAsync(userId);
         return Ok(photos.Select(MapToDto));
     }
 
@@ -76,9 +83,10 @@ public class PhotosController : ControllerBase
         }
 
         // Create database record
+        var userId = GetUserId();
         var photo = new ProgressPhoto
         {
-            AthleteId = DefaultAthleteId,
+            UserId = userId,
             OriginalFileName = file.FileName,
             ImagePath = $"/uploads/{fileName}",
             ProcessingStatus = PhotoProcessingStatus.Pending

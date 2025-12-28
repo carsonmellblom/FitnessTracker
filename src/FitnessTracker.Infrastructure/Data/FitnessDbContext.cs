@@ -1,15 +1,15 @@
 using FitnessTracker.Core.Entities;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace FitnessTracker.Infrastructure.Data;
 
-public class FitnessDbContext : DbContext
+public class FitnessDbContext : IdentityDbContext<ApplicationUser>
 {
     public FitnessDbContext(DbContextOptions<FitnessDbContext> options) : base(options)
     {
     }
 
-    public DbSet<Athlete> Athletes => Set<Athlete>();
     public DbSet<Workout> Workouts => Set<Workout>();
     public DbSet<ExerciseDefinitionCategory> ExerciseDefinitionCategories => Set<ExerciseDefinitionCategory>();
     public DbSet<ExerciseDefinition> ExerciseDefinitions => Set<ExerciseDefinition>();
@@ -24,13 +24,12 @@ public class FitnessDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // Athlete configuration
-        modelBuilder.Entity<Athlete>(entity =>
+        // ApplicationUser configuration
+        modelBuilder.Entity<ApplicationUser>(entity =>
         {
-            entity.HasKey(e => e.Id);
-            entity.Property(e => e.Name).HasMaxLength(100).IsRequired();
-            entity.Property(e => e.Email).HasMaxLength(255).IsRequired();
-            entity.HasIndex(e => e.Email).IsUnique();
+            entity.Property(e => e.UserName).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.RefreshToken).HasMaxLength(500);
         });
 
         // Workout configuration
@@ -40,9 +39,9 @@ public class FitnessDbContext : DbContext
             entity.Property(e => e.Title).HasMaxLength(200).IsRequired();
             entity.Property(e => e.Description).HasMaxLength(1000);
 
-            entity.HasOne(e => e.Athlete)
-                .WithMany(a => a.Workouts)
-                .HasForeignKey(e => e.AthleteId)
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.Workouts)
+                .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
@@ -95,9 +94,9 @@ public class FitnessDbContext : DbContext
             entity.Property(e => e.ProcessingError).HasMaxLength(1000);
             entity.Property(e => e.BodyAnalysisJson).HasColumnType("jsonb");
 
-            entity.HasOne(e => e.Athlete)
-                .WithMany(a => a.ProgressPhotos)
-                .HasForeignKey(e => e.AthleteId)
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.ProgressPhotos)
+                .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
@@ -120,9 +119,9 @@ public class FitnessDbContext : DbContext
             entity.Property(e => e.Title).HasMaxLength(200).IsRequired();
             entity.Property(e => e.Description).HasMaxLength(1000);
 
-            entity.HasOne(e => e.Athlete)
-                .WithMany()
-                .HasForeignKey(e => e.AthleteId)
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.WorkoutTemplates)
+                .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
@@ -170,15 +169,6 @@ public class FitnessDbContext : DbContext
             new ExerciseDefinition { Id = 4, Name = "Overhead Press", PrimaryMuscleGroup = "Shoulders", Description = "Compound shoulder exercise", CategoryId = 1 }
         );
 
-        // Seed a default athlete for testing (no auth)
-        modelBuilder.Entity<Athlete>().HasData(
-            new Athlete
-            {
-                Id = 1,
-                Name = "Default Athlete",
-                Email = "athlete@fitnesstracker.local",
-                CreatedAt = DateTime.UtcNow
-            }
-        );
+
     }
 }
