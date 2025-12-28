@@ -113,8 +113,8 @@ AI/ML: Google MediaPipe for pose detection
 
 ## Prerequisites
 
-- .NET 7 SDK
-- Node.js 20+
+- .NET 10 SDK
+- Node.js 25+
 - PostgreSQL (installed locally)
 - RabbitMQ (Docker: `rabbitmq:4-management`)
 - Docker Desktop
