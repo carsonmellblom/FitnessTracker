@@ -1,6 +1,41 @@
 import { useState, useEffect } from 'react';
-import { workoutsApi, exerciseDefinitionsApi, templatesApi } from '../services/api';
 import { useNavigate } from 'react-router-dom';
+import {
+    Box,
+    Container,
+    Typography,
+    Button,
+    Card,
+    CardContent,
+    IconButton,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    Paper,
+    Snackbar,
+    Alert,
+    CircularProgress,
+    Chip,
+    Collapse,
+    List,
+    ListItem,
+    ListItemButton,
+    ListItemText,
+    Divider,
+} from '@mui/material';
+import {
+    ChevronLeft as ChevronLeftIcon,
+    ChevronRight as ChevronRightIcon,
+    FitnessCenter as FitnessCenterIcon,
+    ViewList as ViewListIcon,
+    Add as AddIcon,
+    Edit as EditIcon,
+    Delete as DeleteIcon,
+    ContentCopy as ContentCopyIcon,
+    Assignment as AssignmentIcon,
+} from '@mui/icons-material';
+import { workoutsApi, exerciseDefinitionsApi, templatesApi } from '../services/api';
 import WorkoutModal from '../components/WorkoutModal';
 
 function Calendar() {
@@ -11,17 +46,28 @@ function Calendar() {
     const [loading, setLoading] = useState(true);
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedWorkoutId, setSelectedWorkoutId] = useState(null);
+    const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
 
     // Modal state
     const [showModal, setShowModal] = useState(false);
     const [showChoiceModal, setShowChoiceModal] = useState(false);
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [workoutToDelete, setWorkoutToDelete] = useState(null);
     const [editingWorkout, setEditingWorkout] = useState(null);
     const [selectedDate, setSelectedDate] = useState(null);
-    const [templateData, setTemplateData] = useState(null); // Pre-filled data from template
+    const [templateData, setTemplateData] = useState(null);
 
     useEffect(() => {
         loadData();
     }, []);
+
+    const showSnackbar = (message, severity = 'info') => {
+        setSnackbar({ open: true, message, severity });
+    };
+
+    const handleCloseSnackbar = () => {
+        setSnackbar({ ...snackbar, open: false });
+    };
 
     const loadData = async () => {
         try {
@@ -36,6 +82,7 @@ function Calendar() {
             setTemplates(templatesData);
         } catch (error) {
             console.error('Failed to load data:', error);
+            showSnackbar('Failed to load data', 'error');
         } finally {
             setLoading(false);
         }
@@ -47,6 +94,7 @@ function Calendar() {
             setWorkouts(data);
         } catch (error) {
             console.error('Failed to load workouts:', error);
+            showSnackbar('Failed to load workouts', 'error');
         }
     };
 
@@ -108,8 +156,6 @@ function Calendar() {
     };
 
     const handleCopyToToday = async (workout) => {
-        if (!window.confirm(`Copy "${workout.title}" to today?`)) return;
-
         try {
             const today = new Date();
             const newWorkout = {
@@ -130,23 +176,32 @@ function Calendar() {
 
             await workoutsApi.create(newWorkout);
             await loadWorkouts();
-            alert('Workout copied to today!');
+            showSnackbar('Workout copied to today!', 'success');
         } catch (error) {
             console.error('Failed to copy workout:', error);
-            alert(error.message || 'Failed to copy workout');
+            showSnackbar(error.message || 'Failed to copy workout', 'error');
         }
     };
 
-    const handleDeleteWorkout = async (workout) => {
-        if (!window.confirm(`Delete "${workout.title}"?`)) return;
+    const handleDeleteClick = (workout) => {
+        setWorkoutToDelete(workout);
+        setShowDeleteDialog(true);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!workoutToDelete) return;
 
         try {
-            await workoutsApi.delete(workout.id);
+            await workoutsApi.delete(workoutToDelete.id);
             await loadWorkouts();
             setSelectedWorkoutId(null);
+            showSnackbar('Workout deleted successfully', 'success');
         } catch (error) {
             console.error('Failed to delete workout:', error);
-            alert(error.message || 'Failed to delete workout');
+            showSnackbar(error.message || 'Failed to delete workout', 'error');
+        } finally {
+            setShowDeleteDialog(false);
+            setWorkoutToDelete(null);
         }
     };
 
@@ -209,235 +264,367 @@ function Calendar() {
 
     if (loading) {
         return (
-            <div className="loading">
-                <div className="spinner"></div>
-            </div>
+            <Box
+                display="flex"
+                justifyContent="center"
+                alignItems="center"
+                minHeight="100vh"
+                role="status"
+                aria-live="polite"
+                aria-label="Loading calendar"
+            >
+                <CircularProgress size={60} />
+            </Box>
         );
     }
 
     return (
-        <div className="fade-in">
-            <div className="page-header">
-                <h1 className="page-title">Workout Calendar</h1>
-                <button className="btn btn-secondary" onClick={() => navigate('/workouts')}>
-                    📋 View All Workouts
-                </button>
-            </div>
+        <Box sx={{ py: 4 }}>
+            <Container maxWidth="lg">
+                {/* Page Header */}
+                <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+                    <Typography
+                        component="h1"
+                        variant="h4"
+                        sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}
+                    >
+                        <FitnessCenterIcon fontSize="large" aria-hidden="true" />
+                        Workout Calendar
+                    </Typography>
+                    <Button
+                        variant="outlined"
+                        startIcon={<ViewListIcon />}
+                        onClick={() => navigate('/workouts')}
+                        sx={{ textTransform: 'none' }}
+                    >
+                        View All Workouts
+                    </Button>
+                </Box>
 
-            <div className="card">
-                <div className="calendar-header">
-                    <button className="btn btn-secondary" onClick={previousMonth}>
-                        ← Previous
-                    </button>
-                    <h2 style={{ margin: 0 }}>
-                        {monthNames[month]} {year}
-                    </h2>
-                    <button className="btn btn-secondary" onClick={nextMonth}>
-                        Next →
-                    </button>
-                </div>
+                <Card elevation={2}>
+                    {/* Calendar Header */}
+                    <Box sx={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        p: 3,
+                        borderBottom: 1,
+                        borderColor: 'divider'
+                    }}>
+                        <IconButton
+                            onClick={previousMonth}
+                            aria-label="Previous month"
+                            size="large"
+                        >
+                            <ChevronLeftIcon />
+                        </IconButton>
+                        <Typography
+                            variant="h5"
+                            component="h2"
+                            sx={{ fontWeight: 600 }}
+                            aria-live="polite"
+                        >
+                            {monthNames[month]} {year}
+                        </Typography>
+                        <IconButton
+                            onClick={nextMonth}
+                            aria-label="Next month"
+                            size="large"
+                        >
+                            <ChevronRightIcon />
+                        </IconButton>
+                    </Box>
 
-                <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-                    Click any day to log a workout
-                </p>
+                    <CardContent>
+                        <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{ textAlign: 'center', mb: 3 }}
+                        >
+                            Click any day to log a workout
+                        </Typography>
 
-                <div className="calendar-grid">
-                    {dayNames.map(day => (
-                        <div key={day} className="calendar-day-name">
-                            {day}
-                        </div>
-                    ))}
+                        {/* Calendar Grid */}
+                        <Box
+                            sx={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(7, 1fr)',
+                                gap: 1,
+                            }}
+                            role="grid"
+                            aria-label="Workout calendar"
+                        >
+                            {/* Day Names Header */}
+                            {dayNames.map(day => (
+                                <Box
+                                    key={day}
+                                    sx={{
+                                        p: 1,
+                                        textAlign: 'center',
+                                        fontWeight: 600,
+                                        color: 'text.secondary',
+                                    }}
+                                    role="columnheader"
+                                >
+                                    {day}
+                                </Box>
+                            ))}
 
-                    {days.map((day, index) => {
-                        const dateKey = getDateKey(day);
-                        const dayWorkouts = dateKey ? workoutsByDate[dateKey] || [] : [];
-                        const isTodayDate = isToday(day);
-                        const hasWorkout = dayWorkouts.length > 0;
+                            {/* Calendar Days */}
+                            {days.map((day, index) => {
+                                const dateKey = getDateKey(day);
+                                const dayWorkouts = dateKey ? workoutsByDate[dateKey] || [] : [];
+                                const isTodayDate = isToday(day);
+                                const hasWorkout = dayWorkouts.length > 0;
 
-                        return (
-                            <div
-                                key={index}
-                                className={`calendar-day ${!day ? 'calendar-day-empty' : ''} ${isTodayDate ? 'calendar-day-today' : ''}`}
-                                onClick={() => handleDayClick(day)}
-                                style={{ cursor: day ? 'pointer' : 'default' }}
-                            >
-                                {day && (
-                                    <>
-                                        <div className="calendar-day-number">{day}</div>
-                                        <div className="calendar-workouts">
-                                            {dayWorkouts.map(workout => (
-                                                <div key={workout.id} className="calendar-workout-item">
-                                                    <div
-                                                        className="calendar-workout-title"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setSelectedWorkoutId(selectedWorkoutId === workout.id ? null : workout.id);
-                                                        }}
-                                                        style={{ cursor: 'pointer' }}
-                                                    >
-                                                        💪 {workout.title}
-                                                    </div>
-                                                    {selectedWorkoutId === workout.id && (
-                                                        <div className="calendar-workout-details">
-                                                            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
-                                                                {workout.exercises.length} exercise{workout.exercises.length !== 1 ? 's' : ''} • {workout.durationMinutes} min
-                                                            </div>
-                                                            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                                                <button
-                                                                    className="btn btn-secondary btn-xs"
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        setEditingWorkout(workout);
-                                                                        setSelectedDate(null);
-                                                                        setTemplateData(null);
-                                                                        setShowModal(true);
-                                                                    }}
-                                                                >
-                                                                    ✏️ Edit
-                                                                </button>
-                                                                <button
-                                                                    className="btn btn-danger btn-xs"
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        handleDeleteWorkout(workout);
-                                                                    }}
-                                                                >
-                                                                    🗑️ Delete
-                                                                </button>
-                                                                {!isTodayDate && (
-                                                                    <button
-                                                                        className="btn btn-primary btn-xs"
+                                return (
+                                    <Paper
+                                        key={index}
+                                        elevation={day ? 1 : 0}
+                                        sx={{
+                                            minHeight: 100,
+                                            p: 1,
+                                            cursor: day ? 'pointer' : 'default',
+                                            backgroundColor: day ? (isTodayDate ? 'primary.dark' : 'background.paper') : 'transparent',
+                                            border: isTodayDate ? 2 : 1,
+                                            borderColor: isTodayDate ? 'primary.main' : 'divider',
+                                            transition: 'all 0.2s',
+                                            '&:hover': day ? {
+                                                backgroundColor: isTodayDate ? 'primary.dark' : 'action.hover',
+                                                transform: 'translateY(-2px)',
+                                                boxShadow: 3,
+                                            } : {},
+                                        }}
+                                        onClick={() => handleDayClick(day)}
+                                        role="gridcell"
+                                        aria-label={day ? `${monthNames[month]} ${day}, ${year}${hasWorkout ? `, ${dayWorkouts.length} workout${dayWorkouts.length > 1 ? 's' : ''}` : ', no workouts'}` : 'Empty'}
+                                        tabIndex={day ? 0 : -1}
+                                        onKeyDown={(e) => {
+                                            if (day && (e.key === 'Enter' || e.key === ' ')) {
+                                                e.preventDefault();
+                                                handleDayClick(day);
+                                            }
+                                        }}
+                                    >
+                                        {day && (
+                                            <>
+                                                <Typography
+                                                    variant="body2"
+                                                    sx={{
+                                                        fontWeight: isTodayDate ? 700 : 600,
+                                                        mb: 0.5,
+                                                    }}
+                                                >
+                                                    {day}
+                                                </Typography>
+                                                {dayWorkouts.map(workout => (
+                                                    <Box key={workout.id} sx={{ mb: 0.5 }}>
+                                                        <Chip
+                                                            icon={<FitnessCenterIcon />}
+                                                            label={workout.title}
+                                                            size="small"
+                                                            color="primary"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setSelectedWorkoutId(selectedWorkoutId === workout.id ? null : workout.id);
+                                                            }}
+                                                            sx={{
+                                                                width: '100%',
+                                                                justifyContent: 'flex-start',
+                                                                fontSize: '0.7rem',
+                                                            }}
+                                                        />
+                                                        <Collapse in={selectedWorkoutId === workout.id}>
+                                                            <Box sx={{ mt: 1, p: 1, bgcolor: 'background.default', borderRadius: 1 }}>
+                                                                <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
+                                                                    {workout.exercises.length} exercise{workout.exercises.length !== 1 ? 's' : ''} • {workout.durationMinutes} min
+                                                                </Typography>
+                                                                <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                                                                    <IconButton
+                                                                        size="small"
+                                                                        color="primary"
                                                                         onClick={(e) => {
                                                                             e.stopPropagation();
-                                                                            handleCopyToToday(workout);
+                                                                            setEditingWorkout(workout);
+                                                                            setSelectedDate(null);
+                                                                            setTemplateData(null);
+                                                                            setShowModal(true);
                                                                         }}
+                                                                        aria-label={`Edit ${workout.title}`}
                                                                     >
-                                                                        📋 Copy to Today
-                                                                    </button>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            ))}
-                                            {!hasWorkout && (
-                                                <div style={{
-                                                    fontSize: '0.75rem',
-                                                    color: 'var(--text-muted)',
-                                                    opacity: 0.5,
-                                                    textAlign: 'center',
-                                                    padding: '0.25rem'
-                                                }}>
-                                                    + Add
-                                                </div>
-                                            )}
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
+                                                                        <EditIcon fontSize="small" />
+                                                                    </IconButton>
+                                                                    <IconButton
+                                                                        size="small"
+                                                                        color="error"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handleDeleteClick(workout);
+                                                                        }}
+                                                                        aria-label={`Delete ${workout.title}`}
+                                                                    >
+                                                                        <DeleteIcon fontSize="small" />
+                                                                    </IconButton>
+                                                                    {!isTodayDate && (
+                                                                        <IconButton
+                                                                            size="small"
+                                                                            color="secondary"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                handleCopyToToday(workout);
+                                                                            }}
+                                                                            aria-label={`Copy ${workout.title} to today`}
+                                                                        >
+                                                                            <ContentCopyIcon fontSize="small" />
+                                                                        </IconButton>
+                                                                    )}
+                                                                </Box>
+                                                            </Box>
+                                                        </Collapse>
+                                                    </Box>
+                                                ))}
+                                                {!hasWorkout && (
+                                                    <Typography
+                                                        variant="caption"
+                                                        color="text.disabled"
+                                                        sx={{ display: 'block', textAlign: 'center', mt: 1, opacity: 0.5 }}
+                                                    >
+                                                        + Add
+                                                    </Typography>
+                                                )}
+                                            </>
+                                        )}
+                                    </Paper>
+                                );
+                            })}
+                        </Box>
+                    </CardContent>
+                </Card>
 
-            {/* Choice Modal - New Workout or From Template */}
-            {showChoiceModal && (
-                <div className="modal-overlay" onClick={() => setShowChoiceModal(false)}>
-                    <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
-                        <div className="modal-header">
-                            <h2 className="modal-title">Add Workout</h2>
-                            <button
-                                className="btn btn-secondary btn-icon"
-                                onClick={() => setShowChoiceModal(false)}
-                            >
-                                ✕
-                            </button>
-                        </div>
-                        <div className="modal-body">
-                            <p style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>
-                                {selectedDate && new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', {
+                {/* Choice Modal - New Workout or From Template */}
+                <Dialog
+                    open={showChoiceModal}
+                    onClose={() => setShowChoiceModal(false)}
+                    maxWidth="xs"
+                    fullWidth
+                    aria-labelledby="choice-dialog-title"
+                >
+                    <DialogTitle id="choice-dialog-title">
+                        Add Workout
+                    </DialogTitle>
+                    <DialogContent>
+                        {selectedDate && (
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                {new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', {
                                     weekday: 'long',
                                     month: 'long',
                                     day: 'numeric'
                                 })}
-                            </p>
+                            </Typography>
+                        )}
 
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                <button
-                                    className="btn btn-primary"
-                                    onClick={handleNewWorkout}
-                                    style={{ padding: '1rem', fontSize: '1rem' }}
+                        <Button
+                            variant="contained"
+                            fullWidth
+                            startIcon={<AddIcon />}
+                            onClick={handleNewWorkout}
+                            sx={{ mb: 2, py: 1.5, textTransform: 'none' }}
+                        >
+                            New Workout
+                        </Button>
+
+                        {templates.length > 0 ? (
+                            <>
+                                <Divider sx={{ my: 2 }}>
+                                    <Typography variant="caption" color="text.secondary">
+                                        or use a template
+                                    </Typography>
+                                </Divider>
+                                <List sx={{ maxHeight: 200, overflow: 'auto' }}>
+                                    {templates.map((template) => (
+                                        <ListItem key={template.id} disablePadding>
+                                            <ListItemButton onClick={() => handleFromTemplate(template)}>
+                                                <AssignmentIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                                                <ListItemText
+                                                    primary={template.title}
+                                                    secondary={`${template.exercises.length} exercises`}
+                                                />
+                                            </ListItemButton>
+                                        </ListItem>
+                                    ))}
+                                </List>
+                            </>
+                        ) : (
+                            <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', mt: 2 }}>
+                                No templates yet.{' '}
+                                <Typography
+                                    component="a"
+                                    href="/templates"
+                                    variant="body2"
+                                    color="primary"
+                                    sx={{ textDecoration: 'none' }}
                                 >
-                                    ➕ New Workout
-                                </button>
+                                    Create one
+                                </Typography>
+                            </Typography>
+                        )}
+                    </DialogContent>
+                    <DialogActions sx={{ px: 3, pb: 2 }}>
+                        <Button onClick={() => setShowChoiceModal(false)} sx={{ textTransform: 'none' }}>
+                            Cancel
+                        </Button>
+                    </DialogActions>
+                </Dialog>
 
-                                {templates.length > 0 ? (
-                                    <>
-                                        <div style={{
-                                            textAlign: 'center',
-                                            color: 'var(--text-muted)',
-                                            fontSize: '0.85rem',
-                                            margin: '0.5rem 0'
-                                        }}>
-                                            — or use a template —
-                                        </div>
-                                        <div style={{
-                                            maxHeight: '200px',
-                                            overflowY: 'auto',
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            gap: '0.5rem'
-                                        }}>
-                                            {templates.map(template => (
-                                                <button
-                                                    key={template.id}
-                                                    className="btn btn-secondary"
-                                                    onClick={() => handleFromTemplate(template)}
-                                                    style={{
-                                                        padding: '0.75rem',
-                                                        textAlign: 'left',
-                                                        display: 'flex',
-                                                        justifyContent: 'space-between',
-                                                        alignItems: 'center'
-                                                    }}
-                                                >
-                                                    <span>📋 {template.title}</span>
-                                                    <span style={{
-                                                        fontSize: '0.75rem',
-                                                        color: 'var(--text-muted)'
-                                                    }}>
-                                                        {template.exercises.length} exercises
-                                                    </span>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </>
-                                ) : (
-                                    <p style={{
-                                        fontSize: '0.85rem',
-                                        color: 'var(--text-muted)',
-                                        textAlign: 'center'
-                                    }}>
-                                        No templates yet. <a href="/templates" style={{ color: 'var(--primary)' }}>Create one</a>
-                                    </p>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+                {/* Delete Confirmation Dialog */}
+                <Dialog
+                    open={showDeleteDialog}
+                    onClose={() => setShowDeleteDialog(false)}
+                    aria-labelledby="delete-dialog-title"
+                    aria-describedby="delete-dialog-description"
+                >
+                    <DialogTitle id="delete-dialog-title">
+                        Delete Workout
+                    </DialogTitle>
+                    <DialogContent>
+                        <Typography id="delete-dialog-description">
+                            Are you sure you want to delete "{workoutToDelete?.title}"? This action cannot be undone.
+                        </Typography>
+                    </DialogContent>
+                    <DialogActions sx={{ px: 3, pb: 2 }}>
+                        <Button onClick={() => setShowDeleteDialog(false)} sx={{ textTransform: 'none' }}>
+                            Cancel
+                        </Button>
+                        <Button onClick={handleDeleteConfirm} color="error" variant="contained" sx={{ textTransform: 'none' }}>
+                            Delete
+                        </Button>
+                    </DialogActions>
+                </Dialog>
 
-            {/* Workout Modal */}
-            <WorkoutModal
-                isOpen={showModal}
-                onClose={handleCloseModal}
-                onSave={loadWorkouts}
-                workout={editingWorkout}
-                initialDate={selectedDate}
-                definitions={definitions}
-                templateData={templateData}
-            />
-        </div>
+                {/* Workout Modal */}
+                <WorkoutModal
+                    isOpen={showModal}
+                    onClose={handleCloseModal}
+                    onSave={loadWorkouts}
+                    workout={editingWorkout}
+                    initialDate={selectedDate}
+                    definitions={definitions}
+                    templateData={templateData}
+                />
+
+                {/* Snackbar for notifications */}
+                <Snackbar
+                    open={snackbar.open}
+                    autoHideDuration={6000}
+                    onClose={handleCloseSnackbar}
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+                >
+                    <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+                        {snackbar.message}
+                    </Alert>
+                </Snackbar>
+            </Container>
+        </Box>
     );
 }
 
