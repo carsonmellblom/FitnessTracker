@@ -301,16 +301,19 @@ function Photos() {
     }
 
     return (
-        <Box sx={{ maxWidth: 1400, mx: 'auto' }}>
+        <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
             {/* Page Header */}
             <Box sx={{ mb: 4 }}>
-                <Typography
-                    variant="h4"
-                    component="h1"
-                    sx={{ fontWeight: 'bold' }}
-                >
-                    Progress Photos
-                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                    <PhotoCameraIcon sx={{ fontSize: 32, color: 'primary.main' }} aria-hidden="true" />
+                    <Typography
+                        variant="h4"
+                        component="h1"
+                        sx={{ fontWeight: 'bold' }}
+                    >
+                        Progress Photos
+                    </Typography>
+                </Box>
             </Box>
 
             {/* Upload Zone */}
