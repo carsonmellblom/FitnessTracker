@@ -105,6 +105,7 @@ builder.Services.AddScoped<IPhotoRepository, PhotoRepository>();
 
 // Register services
 builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 
 // Register RabbitMQ publisher, add as a singleton because we want to use the same connection for the entire application
 builder.Services.AddSingleton<IMessagePublisher, RabbitMqPublisher>();
