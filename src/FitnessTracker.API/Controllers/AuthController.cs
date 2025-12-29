@@ -1,12 +1,8 @@
 using System.Security.Claims;
 using FitnessTracker.API.DTOs;
-using FitnessTracker.Core.Config;
-using FitnessTracker.Core.Entities;
 using FitnessTracker.Core.Interfaces;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 using Asp.Versioning;
 
 namespace FitnessTracker.API.Controllers;
@@ -16,163 +12,92 @@ namespace FitnessTracker.API.Controllers;
 [ApiVersion("1.0")]
 public class AuthController : ControllerBase
 {
-    private readonly UserManager<ApplicationUser> _userManager;
-    private readonly SignInManager<ApplicationUser> _signInManager;
-    private readonly ITokenService _tokenService;
-    private readonly JwtSettings _jwtSettings;
+    private readonly IAuthService _authService;
     private readonly IConfiguration _configuration;
 
     public AuthController(
-        UserManager<ApplicationUser> userManager,
-        SignInManager<ApplicationUser> signInManager,
-        ITokenService tokenService,
-        IOptions<JwtSettings> jwtSettings,
+        IAuthService authService,
         IConfiguration configuration)
     {
-        _userManager = userManager;
-        _signInManager = signInManager;
-        _tokenService = tokenService;
-        _jwtSettings = jwtSettings.Value;
+        _authService = authService;
         _configuration = configuration;
     }
 
     [HttpPost("register")]
     public async Task<ActionResult<AuthResponseDto>> Register(RegisterDto dto)
     {
-        if (dto.Password != dto.ConfirmPassword)
+        var result = await _authService.RegisterAsync(dto.Email, dto.UserName, dto.Password, dto.ConfirmPassword);
+
+        if (!result.Success)
         {
-            return BadRequest(new { message = "Passwords do not match" });
+            return BadRequest(new { message = result.ErrorMessage });
         }
-
-        var existingUser = await _userManager.FindByEmailAsync(dto.Email);
-        if (existingUser != null)
-        {
-            return BadRequest(new { message = "Email already in use" });
-        }
-
-        var user = new ApplicationUser
-        {
-            Email = dto.Email,
-            UserName = dto.UserName,
-            EmailConfirmed = true // Auto-confirm for now
-        };
-
-        var result = await _userManager.CreateAsync(user, dto.Password);
-
-        if (!result.Succeeded)
-        {
-            return BadRequest(new { message = "Failed to create user", errors = result.Errors });
-        }
-
-        var accessToken = _tokenService.GenerateAccessToken(user);
-        var refreshToken = _tokenService.GenerateRefreshToken();
-
-        user.RefreshToken = refreshToken;
-        user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays);
-        await _userManager.UpdateAsync(user);
 
         var response = new AuthResponseDto
         {
-            UserId = user.Id,
-            Email = user.Email ?? string.Empty,
-            UserName = user.UserName ?? string.Empty,
-            AccessToken = accessToken,
-            RefreshToken = refreshToken,
-            ExpiresAt = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpirationMinutes)
+            UserId = result.UserId!,
+            Email = result.Email!,
+            UserName = result.UserName!,
+            AccessToken = result.AccessToken!,
+            RefreshToken = result.RefreshToken!,
+            ExpiresAt = result.ExpiresAt!.Value
         };
 
-        // Set httpOnly cookies
-        SetAuthCookies(accessToken, refreshToken);
-
+        SetAuthCookies(result.AccessToken!, result.RefreshToken!);
         return Ok(response);
     }
 
     [HttpPost("login")]
     public async Task<ActionResult<AuthResponseDto>> Login(LoginDto dto)
     {
-        var user = await _userManager.FindByEmailAsync(dto.Email);
-        if (user == null)
+        var result = await _authService.LoginAsync(dto.Email, dto.Password);
+
+        if (!result.Success)
         {
-            return Unauthorized(new { message = "Invalid email or password" });
+            return Unauthorized(new { message = result.ErrorMessage });
         }
-
-        var result = await _signInManager.CheckPasswordSignInAsync(user, dto.Password, lockoutOnFailure: false);
-
-        if (!result.Succeeded)
-        {
-            return Unauthorized(new { message = "Invalid email or password" });
-        }
-
-        var accessToken = _tokenService.GenerateAccessToken(user);
-        var refreshToken = _tokenService.GenerateRefreshToken();
-
-        user.RefreshToken = refreshToken;
-        user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays);
-        await _userManager.UpdateAsync(user);
 
         var response = new AuthResponseDto
         {
-            UserId = user.Id,
-            Email = user.Email ?? string.Empty,
-            UserName = user.UserName ?? string.Empty,
-            AccessToken = accessToken,
-            RefreshToken = refreshToken,
-            ExpiresAt = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpirationMinutes)
+            UserId = result.UserId!,
+            Email = result.Email!,
+            UserName = result.UserName!,
+            AccessToken = result.AccessToken!,
+            RefreshToken = result.RefreshToken!,
+            ExpiresAt = result.ExpiresAt!.Value
         };
 
-        // Set httpOnly cookies
-        SetAuthCookies(accessToken, refreshToken);
-
+        SetAuthCookies(result.AccessToken!, result.RefreshToken!);
         return Ok(response);
     }
 
     [HttpPost("refresh")]
     public async Task<ActionResult<AuthResponseDto>> Refresh(RefreshTokenDto dto)
     {
-        var principal = _tokenService.GetPrincipalFromExpiredToken(dto.AccessToken);
-        if (principal == null)
+        var result = await _authService.RefreshTokenAsync(dto.AccessToken, dto.RefreshToken);
+
+        if (!result.Success)
         {
-            return BadRequest(new { message = "Invalid access token" });
+            return BadRequest(new { message = result.ErrorMessage });
         }
-
-        var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (userId == null)
-        {
-            return BadRequest(new { message = "Invalid token claims" });
-        }
-
-        var user = await _userManager.FindByIdAsync(userId);
-        if (user == null || user.RefreshToken != dto.RefreshToken || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
-        {
-            return BadRequest(new { message = "Invalid refresh token" });
-        }
-
-        var newAccessToken = _tokenService.GenerateAccessToken(user);
-        var newRefreshToken = _tokenService.GenerateRefreshToken();
-
-        user.RefreshToken = newRefreshToken;
-        user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays);
-        await _userManager.UpdateAsync(user);
 
         var response = new AuthResponseDto
         {
-            UserId = user.Id,
-            Email = user.Email ?? string.Empty,
-            UserName = user.UserName ?? string.Empty,
-            AccessToken = newAccessToken,
-            RefreshToken = newRefreshToken,
-            ExpiresAt = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpirationMinutes)
+            UserId = result.UserId!,
+            Email = result.Email!,
+            UserName = result.UserName!,
+            AccessToken = result.AccessToken!,
+            RefreshToken = result.RefreshToken!,
+            ExpiresAt = result.ExpiresAt!.Value
         };
 
-        // Set httpOnly cookies
-        SetAuthCookies(newAccessToken, newRefreshToken);
-
+        SetAuthCookies(result.AccessToken!, result.RefreshToken!);
         return Ok(response);
     }
 
     [Authorize]
     [HttpGet("me")]
-    public async Task<ActionResult<object>> GetCurrentUser()
+    public ActionResult<object> GetCurrentUser()
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (userId == null)
@@ -180,17 +105,12 @@ public class AuthController : ControllerBase
             return Unauthorized();
         }
 
-        var user = await _userManager.FindByIdAsync(userId);
-        if (user == null)
-        {
-            return NotFound();
-        }
-
+        // In a real app, you might want to get fresh user data from the service
         return Ok(new
         {
-            userId = user.Id,
-            email = user.Email,
-            userName = user.UserName
+            userId = userId,
+            email = User.FindFirstValue(ClaimTypes.Email),
+            userName = User.FindFirstValue(ClaimTypes.Name)
         });
     }
 
@@ -201,13 +121,7 @@ public class AuthController : ControllerBase
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (userId != null)
         {
-            var user = await _userManager.FindByIdAsync(userId);
-            if (user != null)
-            {
-                user.RefreshToken = null;
-                user.RefreshTokenExpiryTime = null;
-                await _userManager.UpdateAsync(user);
-            }
+            await _authService.RevokeTokenAsync(userId);
         }
 
         // Clear cookies
@@ -224,22 +138,26 @@ public class AuthController : ControllerBase
         var sameSiteModeString = _configuration.GetValue<string>("CookieSettings:SameSiteMode") ?? "Lax";
         var sameSiteMode = Enum.Parse<SameSiteMode>(sameSiteModeString);
 
+        // Access token cookie (shorter expiry)
+        var accessTokenExpiry = TimeSpan.FromMinutes(15); // Default JWT expiry
         var cookieOptions = new CookieOptions
         {
             HttpOnly = true,
-            Secure = secureCookies, // Read from config: false for dev (HTTP), true for prod (HTTPS)
-            SameSite = sameSiteMode, // Read from config: Lax is recommended for most apps
-            Expires = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpirationMinutes)
+            Secure = secureCookies,
+            SameSite = sameSiteMode,
+            Expires = DateTime.UtcNow.Add(accessTokenExpiry)
         };
 
         Response.Cookies.Append("accessToken", accessToken, cookieOptions);
 
+        // Refresh token cookie (longer expiry)
+        var refreshTokenExpiry = TimeSpan.FromDays(7); // Default refresh token expiry
         var refreshCookieOptions = new CookieOptions
         {
             HttpOnly = true,
             Secure = secureCookies,
             SameSite = sameSiteMode,
-            Expires = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays)
+            Expires = DateTime.UtcNow.Add(refreshTokenExpiry)
         };
 
         Response.Cookies.Append("refreshToken", refreshToken, refreshCookieOptions);
