@@ -1,4 +1,33 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import {
+    Box,
+    Typography,
+    Card,
+    CardContent,
+    Button,
+    IconButton,
+    Grid,
+    CircularProgress,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    MenuItem,
+    TextField,
+    Chip,
+    Stack,
+    ToggleButtonGroup,
+    ToggleButton,
+    Divider,
+    Paper
+} from '@mui/material';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
+import DeleteIcon from '@mui/icons-material/Delete';
+import CloseIcon from '@mui/icons-material/Close';
+import EditIcon from '@mui/icons-material/Edit';
+import CropIcon from '@mui/icons-material/Crop';
+import AccessibilityNewIcon from '@mui/icons-material/AccessibilityNew';
 import { photosApi, getImageUrl } from '../services/api';
 import LandmarkOverlay from '../components/LandmarkOverlay';
 
@@ -10,9 +39,11 @@ function Photos() {
     const [selectedPhoto, setSelectedPhoto] = useState(null);
     const [sortBy, setSortBy] = useState('date-desc');
     const [filterPose, setFilterPose] = useState('all');
-    const [viewMode, setViewMode] = useState('original'); // 'original', 'landmarks', 'cropped'
+    const [viewMode, setViewMode] = useState('original');
     const [editingDate, setEditingDate] = useState(false);
     const [newDate, setNewDate] = useState('');
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [photoToDelete, setPhotoToDelete] = useState(null);
     const fileInputRef = useRef(null);
     const modalImageRef = useRef(null);
 
@@ -31,7 +62,6 @@ function Photos() {
         }
     };
 
-    // Extract pose type from photo's body analysis
     const getPoseType = (photo) => {
         if (!photo.bodyAnalysis) return null;
         try {
@@ -44,7 +74,6 @@ function Photos() {
         }
     };
 
-    // Extract landmarks from photo's body analysis
     const getLandmarks = (photo) => {
         if (!photo?.bodyAnalysis) return null;
         try {
@@ -57,7 +86,6 @@ function Photos() {
         }
     };
 
-    // Get unique pose types for filter dropdown
     const availablePoses = useMemo(() => {
         const poses = new Set();
         photos.forEach(photo => {
@@ -67,16 +95,13 @@ function Photos() {
         return Array.from(poses).sort((a, b) => a.localeCompare(b));
     }, [photos]);
 
-    // Filter and sort photos
     const filteredAndSortedPhotos = useMemo(() => {
         let result = [...photos];
 
-        // Filter by pose type
         if (filterPose !== 'all') {
             result = result.filter(photo => getPoseType(photo) === filterPose);
         }
 
-        // Sort
         result.sort((a, b) => {
             switch (sortBy) {
                 case 'date-desc':
@@ -131,15 +156,29 @@ function Photos() {
         setDragOver(false);
     };
 
-    const handleDelete = async (id) => {
-        if (!window.confirm('Are you sure you want to delete this photo?')) return;
+    const handleDeleteClick = (photo) => {
+        setPhotoToDelete(photo);
+        setDeleteDialogOpen(true);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!photoToDelete) return;
+
         try {
-            await photosApi.delete(id);
+            await photosApi.delete(photoToDelete.id);
+            setDeleteDialogOpen(false);
+            setPhotoToDelete(null);
             setSelectedPhoto(null);
             loadPhotos();
         } catch (error) {
             console.error('Failed to delete photo:', error);
+            alert('Failed to delete photo.');
         }
+    };
+
+    const handleDeleteCancel = () => {
+        setDeleteDialogOpen(false);
+        setPhotoToDelete(null);
     };
 
     const handleUpdateDate = async () => {
@@ -148,7 +187,6 @@ function Photos() {
             await photosApi.updateDate(selectedPhoto.id, newDate);
             setEditingDate(false);
             loadPhotos();
-            // Update selectedPhoto with new date
             setSelectedPhoto({ ...selectedPhoto, photoTakenAt: newDate });
         } catch (error) {
             console.error('Failed to update photo date:', error);
@@ -162,54 +200,83 @@ function Photos() {
             const analysis = typeof bodyAnalysis === 'string' ? JSON.parse(bodyAnalysis) : bodyAnalysis;
 
             return (
-                <div style={{ marginTop: '1rem' }}>
-                    <h4 style={{ marginBottom: '0.5rem' }}>Analysis Results</h4>
+                <Box sx={{ mt: 3 }}>
+                    <Typography variant="h6" gutterBottom>
+                        Analysis Results
+                    </Typography>
 
                     {analysis.image_quality && (
-                        <div style={{ marginBottom: '0.75rem' }}>
-                            <div className="card-subtitle" style={{ marginBottom: '0.25rem' }}>Image Quality</div>
-                            <span className={`badge badge-${analysis.image_quality.quality_score === 'excellent' ? 'completed' : analysis.image_quality.quality_score === 'good' ? 'processing' : 'pending'}`}>
-                                {analysis.image_quality.quality_score}
-                            </span>
-                        </div>
+                        <Box sx={{ mb: 2 }}>
+                            <Typography variant="caption" color="text.secondary" display="block">
+                                Image Quality
+                            </Typography>
+                            <Chip
+                                label={analysis.image_quality.quality_score}
+                                color={
+                                    analysis.image_quality.quality_score === 'excellent' ? 'success' :
+                                        analysis.image_quality.quality_score === 'good' ? 'warning' : 'default'
+                                }
+                                size="small"
+                            />
+                        </Box>
                     )}
 
                     {analysis.original_dimensions && (
-                        <div style={{ marginBottom: '0.75rem' }}>
-                            <div className="card-subtitle" style={{ marginBottom: '0.25rem' }}>Dimensions</div>
-                            <span>{analysis.original_dimensions.width} × {analysis.original_dimensions.height}</span>
-                        </div>
+                        <Box sx={{ mb: 2 }}>
+                            <Typography variant="caption" color="text.secondary" display="block">
+                                Dimensions
+                            </Typography>
+                            <Typography variant="body2">
+                                {analysis.original_dimensions.width} × {analysis.original_dimensions.height}
+                            </Typography>
+                        </Box>
                     )}
 
                     {analysis.body_detection && (
-                        <div style={{ marginBottom: '0.75rem' }}>
-                            <div className="card-subtitle" style={{ marginBottom: '0.25rem' }}>Pose Detection</div>
+                        <Box sx={{ mb: 2 }}>
+                            <Typography variant="caption" color="text.secondary" display="block">
+                                Pose Detection
+                            </Typography>
                             {analysis.body_detection.pose_detected ? (
-                                <div>
-                                    <span className="badge badge-completed" style={{ marginRight: '0.5rem' }}>
-                                        {analysis.body_detection.pose_type || 'Detected'}
-                                    </span>
-                                    <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                                <Box>
+                                    <Chip
+                                        label={analysis.body_detection.pose_type || 'Detected'}
+                                        color="success"
+                                        size="small"
+                                        sx={{ mr: 1 }}
+                                    />
+                                    <Typography variant="caption" color="text.secondary">
                                         {analysis.body_detection.landmark_count} landmarks • {Math.round((analysis.body_detection.confidence || 0) * 100)}% confidence
-                                    </span>
-                                </div>
+                                    </Typography>
+                                </Box>
                             ) : (
-                                <span style={{ color: 'var(--text-secondary)' }}>❌ No pose detected</span>
+                                <Typography variant="body2" color="error">
+                                    No pose detected
+                                </Typography>
                             )}
-                        </div>
+                        </Box>
                     )}
 
                     {analysis.recommendations && analysis.recommendations.length > 0 && (
-                        <div>
-                            <div className="card-subtitle" style={{ marginBottom: '0.25rem' }}>Recommendations</div>
-                            <ul style={{ paddingLeft: '1.25rem', margin: 0 }}>
+                        <Box>
+                            <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+                                Recommendations
+                            </Typography>
+                            <Box component="ul" sx={{ pl: 2.5, m: 0 }}>
                                 {analysis.recommendations.map((rec, i) => (
-                                    <li key={i} style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>{rec}</li>
+                                    <Typography
+                                        key={i}
+                                        component="li"
+                                        variant="caption"
+                                        color="text.secondary"
+                                    >
+                                        {rec}
+                                    </Typography>
                                 ))}
-                            </ul>
-                        </div>
+                            </Box>
+                        </Box>
                     )}
-                </div>
+                </Box>
             );
         } catch (e) {
             return null;
@@ -218,26 +285,63 @@ function Photos() {
 
     if (loading) {
         return (
-            <div className="loading">
-                <div className="spinner"></div>
-            </div>
+            <Box
+                sx={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    minHeight: '50vh'
+                }}
+                role="status"
+                aria-label="Loading photos"
+            >
+                <CircularProgress aria-label="Loading" />
+            </Box>
         );
     }
 
     return (
-        <div className="fade-in">
-            <div className="page-header">
-                <h1 className="page-title">Progress Photos</h1>
-            </div>
+        <Box sx={{ maxWidth: 1400, mx: 'auto' }}>
+            {/* Page Header */}
+            <Box sx={{ mb: 4 }}>
+                <Typography
+                    variant="h4"
+                    component="h1"
+                    sx={{ fontWeight: 'bold' }}
+                >
+                    Progress Photos
+                </Typography>
+            </Box>
 
             {/* Upload Zone */}
-            <div
-                className={`upload-zone ${dragOver ? 'drag-over' : ''}`}
+            <Paper
+                sx={{
+                    p: 4,
+                    mb: 3,
+                    textAlign: 'center',
+                    border: '2px dashed',
+                    borderColor: dragOver ? 'primary.main' : 'divider',
+                    bgcolor: dragOver ? 'action.hover' : 'background.paper',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    '&:hover': {
+                        borderColor: 'primary.main',
+                        bgcolor: 'action.hover'
+                    }
+                }}
                 onClick={() => fileInputRef.current?.click()}
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
-                style={{ marginBottom: '1.5rem' }}
+                role="button"
+                aria-label="Upload photos"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        fileInputRef.current?.click();
+                    }
+                }}
             >
                 <input
                     ref={fileInputRef}
@@ -246,172 +350,265 @@ function Photos() {
                     multiple
                     onChange={handleFileSelect}
                     style={{ display: 'none' }}
+                    aria-label="Select photo files"
                 />
                 {uploading ? (
-                    <>
-                        <div className="spinner" style={{ margin: '0 auto 1rem' }}></div>
-                        <p>Uploading...</p>
-                    </>
+                    <Box>
+                        <CircularProgress sx={{ mb: 2 }} />
+                        <Typography>Uploading...</Typography>
+                    </Box>
                 ) : (
-                    <>
-                        <div className="upload-icon">📸</div>
-                        <h3>Upload Progress Photos</h3>
-                        <p className="card-subtitle">
+                    <Box>
+                        <CloudUploadIcon sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
+                        <Typography variant="h6" gutterBottom>
+                            Upload Progress Photos
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
                             Drag and drop photos here, or click to select files
-                        </p>
-                        <p className="card-subtitle">
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
                             Supports JPEG, PNG, and WebP
-                        </p>
-                    </>
+                        </Typography>
+                    </Box>
                 )}
-            </div>
+            </Paper>
 
             {/* Filter and Sort Controls */}
             {photos.length > 0 && (
-                <div className="filter-bar">
-                    <div className="filter-group">
-                        <label htmlFor="sort-select">Sort by:</label>
-                        <select
-                            id="sort-select"
-                            className="filter-select"
-                            value={sortBy}
-                            onChange={(e) => setSortBy(e.target.value)}
-                        >
-                            <option value="date-desc">Date (Newest)</option>
-                            <option value="date-asc">Date (Oldest)</option>
-                            <option value="pose">Pose Type</option>
-                        </select>
-                    </div>
+                <Paper sx={{ p: 2, mb: 3 }}>
+                    <Stack
+                        direction={{ xs: 'column', sm: 'row' }}
+                        spacing={2}
+                        alignItems={{ xs: 'stretch', sm: 'center' }}
+                        justifyContent="space-between"
+                    >
+                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                            <TextField
+                                select
+                                label="Sort by"
+                                value={sortBy}
+                                onChange={(e) => setSortBy(e.target.value)}
+                                size="small"
+                                sx={{ minWidth: 150 }}
+                            >
+                                <MenuItem value="date-desc">Date (Newest)</MenuItem>
+                                <MenuItem value="date-asc">Date (Oldest)</MenuItem>
+                                <MenuItem value="pose">Pose Type</MenuItem>
+                            </TextField>
 
-                    <div className="filter-group">
-                        <label htmlFor="filter-select">Filter:</label>
-                        <select
-                            id="filter-select"
-                            className="filter-select"
-                            value={filterPose}
-                            onChange={(e) => setFilterPose(e.target.value)}
-                        >
-                            <option value="all">All Poses ({photos.length})</option>
-                            {availablePoses.map(pose => (
-                                <option key={pose} value={pose}>
-                                    {pose} ({photos.filter(p => getPoseType(p) === pose).length})
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+                            <TextField
+                                select
+                                label="Filter"
+                                value={filterPose}
+                                onChange={(e) => setFilterPose(e.target.value)}
+                                size="small"
+                                sx={{ minWidth: 200 }}
+                            >
+                                <MenuItem value="all">All Poses ({photos.length})</MenuItem>
+                                {availablePoses.map(pose => (
+                                    <MenuItem key={pose} value={pose}>
+                                        {pose} ({photos.filter(p => getPoseType(p) === pose).length})
+                                    </MenuItem>
+                                ))}
+                            </TextField>
+                        </Stack>
 
-                    <div className="filter-count">
-                        Showing {filteredAndSortedPhotos.length} of {photos.length} photos
-                    </div>
-                </div>
+                        <Typography variant="body2" color="text.secondary">
+                            Showing {filteredAndSortedPhotos.length} of {photos.length} photos
+                        </Typography>
+                    </Stack>
+                </Paper>
             )}
 
             {/* Photo Grid */}
             {photos.length === 0 ? (
-                <div className="card">
-                    <div className="empty-state">
-                        <div className="empty-state-icon">📷</div>
-                        <h3>No photos yet</h3>
-                        <p>Upload your first progress photo to start tracking your transformation!</p>
-                    </div>
-                </div>
+                <Card>
+                    <CardContent>
+                        <Box sx={{ textAlign: 'center', py: 6, px: 2 }}>
+                            <PhotoCameraIcon
+                                sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }}
+                                aria-hidden="true"
+                            />
+                            <Typography variant="h5" component="h2" gutterBottom sx={{ fontWeight: 'medium' }}>
+                                No photos yet
+                            </Typography>
+                            <Typography variant="body1" color="text.secondary">
+                                Upload your first progress photo to start tracking your transformation!
+                            </Typography>
+                        </Box>
+                    </CardContent>
+                </Card>
             ) : filteredAndSortedPhotos.length === 0 ? (
-                <div className="card">
-                    <div className="empty-state">
-                        <div className="empty-state-icon">🔍</div>
-                        <h3>No photos match your filter</h3>
-                        <p>Try selecting a different pose type or clear the filter.</p>
-                        <button className="btn btn-primary" onClick={() => setFilterPose('all')}>
-                            Show All Photos
-                        </button>
-                    </div>
-                </div>
+                <Card>
+                    <CardContent>
+                        <Box sx={{ textAlign: 'center', py: 6, px: 2 }}>
+                            <Typography variant="h5" component="h2" gutterBottom sx={{ fontWeight: 'medium' }}>
+                                No photos match your filter
+                            </Typography>
+                            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+                                Try selecting a different pose type or clear the filter.
+                            </Typography>
+                            <Button
+                                variant="contained"
+                                onClick={() => setFilterPose('all')}
+                            >
+                                Show All Photos
+                            </Button>
+                        </Box>
+                    </CardContent>
+                </Card>
             ) : (
-                <div className="photo-grid">
+                <Grid container spacing={2}>
                     {filteredAndSortedPhotos.map((photo) => {
                         const poseType = getPoseType(photo);
                         return (
-                            <div
-                                key={photo.id}
-                                className="photo-card"
-                                onClick={() => setSelectedPhoto(photo)}
-                            >
-                                <img
-                                    src={getImageUrl(photo.thumbnailUrl || photo.imageUrl)}
-                                    alt={photo.originalFileName}
-                                    onError={(e) => {
-                                        e.target.src = 'https://via.placeholder.com/300?text=Image';
+                            <Grid item xs={6} sm={4} md={3} key={photo.id}>
+                                <Card
+                                    sx={{
+                                        cursor: 'pointer',
+                                        transition: 'transform 0.2s, box-shadow 0.2s',
+                                        '&:hover': {
+                                            transform: 'translateY(-4px)',
+                                            boxShadow: 4
+                                        }
                                     }}
-                                />
-                                <div className="photo-overlay">
-                                    {poseType && (
-                                        <span className="badge badge-pose">
-                                            {poseType}
-                                        </span>
-                                    )}
-                                    {!poseType && (
-                                        <span className={`badge badge-${photo.processingStatus.toLowerCase()}`}>
-                                            {photo.processingStatus}
-                                        </span>
-                                    )}
-                                    <div className="photo-date">
-                                        {new Date(photo.uploadedAt).toLocaleDateString()}
-                                    </div>
-                                </div>
-                            </div>
+                                    onClick={() => setSelectedPhoto(photo)}
+                                    role="button"
+                                    aria-label={`View photo ${photo.originalFileName}`}
+                                    tabIndex={0}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                            e.preventDefault();
+                                            setSelectedPhoto(photo);
+                                        }
+                                    }}
+                                >
+                                    <CardContent sx={{ p: 2 }}>
+                                        {/* Title and Date */}
+                                        <Typography
+                                            variant="subtitle2"
+                                            sx={{ fontWeight: 'bold', mb: 0.5 }}
+                                        >
+                                            {poseType || photo.processingStatus}
+                                        </Typography>
+                                        <Typography
+                                            variant="caption"
+                                            color="text.secondary"
+                                            display="block"
+                                            sx={{ mb: 1.5 }}
+                                        >
+                                            {new Date(photo.uploadedAt).toLocaleDateString()}
+                                        </Typography>
+
+                                        {/* Photo */}
+                                        <Box
+                                            component="img"
+                                            src={getImageUrl(photo.thumbnailUrl || photo.imageUrl)}
+                                            alt={photo.originalFileName}
+                                            onError={(e) => {
+                                                e.target.src = 'https://via.placeholder.com/300?text=Image';
+                                            }}
+                                            sx={{
+                                                width: '100%',
+                                                aspectRatio: '3/4',
+                                                objectFit: 'cover',
+                                                display: 'block',
+                                                borderRadius: 1
+                                            }}
+                                        />
+                                    </CardContent>
+                                </Card>
+                            </Grid>
                         );
                     })}
-                </div>
+                </Grid>
             )}
 
-            {/* Photo Detail Modal */}
-            {selectedPhoto && (
-                <div className="modal-overlay" onClick={() => setSelectedPhoto(null)}>
-                    <div
-                        className="modal"
-                        style={{ maxWidth: '800px' }}
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="modal-header">
-                            <h2 className="modal-title">{selectedPhoto.originalFileName}</h2>
-                            <button
-                                className="btn btn-secondary btn-icon"
-                                onClick={() => setSelectedPhoto(null)}
-                            >
-                                ✕
-                            </button>
-                        </div>
+            {/* Delete Confirmation Dialog */}
+            <Dialog
+                open={deleteDialogOpen}
+                onClose={handleDeleteCancel}
+                aria-labelledby="delete-photo-dialog-title"
+                aria-describedby="delete-photo-dialog-description"
+            >
+                <DialogTitle id="delete-photo-dialog-title">
+                    Delete Photo?
+                </DialogTitle>
+                <DialogContent>
+                    <Typography id="delete-photo-dialog-description">
+                        Are you sure you want to delete this photo? This action cannot be undone.
+                    </Typography>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={handleDeleteCancel} autoFocus>
+                        Cancel
+                    </Button>
+                    <Button onClick={handleDeleteConfirm} color="error" variant="contained">
+                        Delete
+                    </Button>
+                </DialogActions>
+            </Dialog>
 
-                        <div className="modal-body">
-                            {/* Image toggle buttons */}
+            {/* Photo Detail Modal */}
+            <Dialog
+                open={!!selectedPhoto}
+                onClose={() => setSelectedPhoto(null)}
+                maxWidth="md"
+                fullWidth
+                aria-labelledby="photo-detail-dialog-title"
+            >
+                {selectedPhoto && (
+                    <>
+                        <DialogTitle id="photo-detail-dialog-title">
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Typography variant="h6" component="span" noWrap>
+                                    {selectedPhoto.originalFileName}
+                                </Typography>
+                                <IconButton
+                                    onClick={() => setSelectedPhoto(null)}
+                                    aria-label="Close dialog"
+                                    size="small"
+                                >
+                                    <CloseIcon />
+                                </IconButton>
+                            </Box>
+                        </DialogTitle>
+
+                        <DialogContent dividers>
+                            {/* View Mode Toggle */}
                             {(getLandmarks(selectedPhoto) || selectedPhoto.croppedImageUrl) && (
-                                <div style={{ marginBottom: '0.5rem', display: 'flex', gap: '0.5rem' }}>
-                                    <button
-                                        className={`btn btn-sm ${viewMode === 'original' ? 'btn-primary' : 'btn-secondary'}`}
-                                        onClick={() => setViewMode('original')}
+                                <Box sx={{ mb: 2 }}>
+                                    <ToggleButtonGroup
+                                        value={viewMode}
+                                        exclusive
+                                        onChange={(e, newMode) => newMode && setViewMode(newMode)}
+                                        size="small"
+                                        aria-label="View mode"
                                     >
-                                        📷 Original
-                                    </button>
-                                    {getLandmarks(selectedPhoto) && (
-                                        <button
-                                            className={`btn btn-sm ${viewMode === 'landmarks' ? 'btn-primary' : 'btn-secondary'}`}
-                                            onClick={() => setViewMode('landmarks')}
-                                        >
-                                            🦴 Landmarks
-                                        </button>
-                                    )}
-                                    {selectedPhoto.croppedImageUrl && (
-                                        <button
-                                            className={`btn btn-sm ${viewMode === 'cropped' ? 'btn-primary' : 'btn-secondary'}`}
-                                            onClick={() => setViewMode('cropped')}
-                                        >
-                                            ✂️ Cropped
-                                        </button>
-                                    )}
-                                </div>
+                                        <ToggleButton value="original" aria-label="Original view">
+                                            <PhotoCameraIcon fontSize="small" sx={{ mr: 0.5 }} />
+                                            Original
+                                        </ToggleButton>
+                                        {getLandmarks(selectedPhoto) && (
+                                            <ToggleButton value="landmarks" aria-label="Landmarks view">
+                                                <AccessibilityNewIcon fontSize="small" sx={{ mr: 0.5 }} />
+                                                Landmarks
+                                            </ToggleButton>
+                                        )}
+                                        {selectedPhoto.croppedImageUrl && (
+                                            <ToggleButton value="cropped" aria-label="Cropped view">
+                                                <CropIcon fontSize="small" sx={{ mr: 0.5 }} />
+                                                Cropped
+                                            </ToggleButton>
+                                        )}
+                                    </ToggleButtonGroup>
+                                </Box>
                             )}
-                            <div style={{ position: 'relative', display: 'inline-block', width: '100%' }}>
-                                <img
+
+                            {/* Photo Display */}
+                            <Box sx={{ position: 'relative', display: 'inline-block', width: '100%', mb: 3 }}>
+                                <Box
+                                    component="img"
                                     ref={modalImageRef}
                                     src={getImageUrl(
                                         viewMode === 'cropped' && selectedPhoto.croppedImageUrl
@@ -419,12 +616,11 @@ function Photos() {
                                             : selectedPhoto.imageUrl
                                     )}
                                     alt={selectedPhoto.originalFileName}
-                                    style={{
+                                    sx={{
                                         width: '100%',
                                         maxHeight: '400px',
                                         objectFit: 'contain',
-                                        borderRadius: 'var(--radius-md)',
-                                        marginBottom: '1rem',
+                                        borderRadius: 1
                                     }}
                                     onError={(e) => {
                                         e.target.src = 'https://via.placeholder.com/600x400?text=Image+Not+Found';
@@ -437,85 +633,110 @@ function Photos() {
                                         visible={true}
                                     />
                                 )}
-                            </div>
+                            </Box>
 
-                            <div className="grid grid-2" style={{ gap: '1rem' }}>
-                                <div>
-                                    <div className="card-subtitle">Status</div>
-                                    <span className={`badge badge-${selectedPhoto.processingStatus.toLowerCase()}`}>
-                                        {selectedPhoto.processingStatus}
-                                    </span>
-                                </div>
-                                <div>
-                                    <div className="card-subtitle">Uploaded</div>
-                                    <span>
+                            {/* Photo Metadata */}
+                            <Grid container spacing={2} sx={{ mb: 2 }}>
+                                <Grid item xs={6}>
+                                    <Typography variant="caption" color="text.secondary" display="block">
+                                        Status
+                                    </Typography>
+                                    <Chip
+                                        label={selectedPhoto.processingStatus}
+                                        size="small"
+                                        color={selectedPhoto.processingStatus === 'Completed' ? 'success' : 'default'}
+                                    />
+                                </Grid>
+                                <Grid item xs={6}>
+                                    <Typography variant="caption" color="text.secondary" display="block">
+                                        Uploaded
+                                    </Typography>
+                                    <Typography variant="body2">
                                         {new Date(selectedPhoto.uploadedAt).toLocaleString()}
-                                    </span>
-                                </div>
-                            </div>
+                                    </Typography>
+                                </Grid>
+                            </Grid>
 
                             {/* Photo Taken Date */}
-                            <div style={{ marginTop: '1rem' }}>
-                                <div className="card-subtitle" style={{ marginBottom: '0.25rem' }}>
+                            <Box sx={{ mb: 2 }}>
+                                <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
                                     Photo Taken
                                     {!editingDate && (
-                                        <button
-                                            className="btn btn-xs btn-secondary"
-                                            style={{ marginLeft: '0.5rem' }}
+                                        <IconButton
+                                            size="small"
                                             onClick={() => {
                                                 setEditingDate(true);
                                                 setNewDate(selectedPhoto.photoTakenAt
                                                     ? new Date(selectedPhoto.photoTakenAt).toISOString().slice(0, 16)
                                                     : new Date().toISOString().slice(0, 16));
                                             }}
+                                            aria-label="Edit photo taken date"
+                                            sx={{ ml: 1 }}
                                         >
-                                            ✏️ Edit
-                                        </button>
+                                            <EditIcon fontSize="small" />
+                                        </IconButton>
                                     )}
-                                </div>
+                                </Typography>
                                 {editingDate ? (
-                                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                        <input
+                                    <Stack direction="row" spacing={1} alignItems="center">
+                                        <TextField
                                             type="datetime-local"
-                                            className="form-input"
-                                            style={{ maxWidth: '250px' }}
                                             value={newDate}
                                             onChange={(e) => setNewDate(e.target.value)}
+                                            size="small"
+                                            fullWidth
                                         />
-                                        <button className="btn btn-sm btn-primary" onClick={handleUpdateDate}>Save</button>
-                                        <button className="btn btn-sm btn-secondary" onClick={() => setEditingDate(false)}>Cancel</button>
-                                    </div>
+                                        <Button size="small" variant="contained" onClick={handleUpdateDate}>
+                                            Save
+                                        </Button>
+                                        <Button size="small" onClick={() => setEditingDate(false)}>
+                                            Cancel
+                                        </Button>
+                                    </Stack>
                                 ) : (
-                                    <span>
+                                    <Typography variant="body2">
                                         {selectedPhoto.photoTakenAt
                                             ? new Date(selectedPhoto.photoTakenAt).toLocaleString()
                                             : <em style={{ color: 'var(--text-muted)' }}>Not set (using upload date)</em>}
-                                    </span>
+                                    </Typography>
                                 )}
-                            </div>
+                            </Box>
 
+                            {/* Processing Error */}
                             {selectedPhoto.processingError && (
-                                <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(239, 68, 68, 0.1)', borderRadius: 'var(--radius-md)' }}>
-                                    <div className="card-subtitle" style={{ color: 'var(--accent-danger)' }}>Processing Error</div>
-                                    <p>{selectedPhoto.processingError}</p>
-                                </div>
+                                <Paper
+                                    sx={{
+                                        p: 2,
+                                        mb: 2,
+                                        bgcolor: 'error.lighter',
+                                        border: '1px solid',
+                                        borderColor: 'error.main'
+                                    }}
+                                >
+                                    <Typography variant="caption" color="error" display="block" fontWeight="bold">
+                                        Processing Error
+                                    </Typography>
+                                    <Typography variant="body2">{selectedPhoto.processingError}</Typography>
+                                </Paper>
                             )}
 
+                            {/* Body Analysis */}
                             {selectedPhoto.bodyAnalysis && renderBodyAnalysis(selectedPhoto.bodyAnalysis)}
-                        </div>
+                        </DialogContent>
 
-                        <div className="modal-footer">
-                            <button
-                                className="btn btn-danger"
-                                onClick={() => handleDelete(selectedPhoto.id)}
+                        <DialogActions>
+                            <Button
+                                startIcon={<DeleteIcon />}
+                                color="error"
+                                onClick={() => handleDeleteClick(selectedPhoto)}
                             >
-                                🗑️ Delete Photo
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
+                                Delete Photo
+                            </Button>
+                        </DialogActions>
+                    </>
+                )}
+            </Dialog>
+        </Box>
     );
 }
 
