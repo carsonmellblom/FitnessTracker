@@ -1,4 +1,25 @@
 import { useState, useEffect } from 'react';
+import {
+    Box,
+    Typography,
+    Accordion,
+    AccordionSummary,
+    AccordionDetails,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    Paper,
+    Chip,
+    CircularProgress,
+    Card,
+    CardContent
+} from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import { personalRecordsApi } from '../services/api';
 
 function PersonalRecords() {
@@ -24,117 +45,241 @@ function PersonalRecords() {
         }
     };
 
-    const toggleExpand = (id) => {
+    const handleAccordionChange = (exerciseId) => (event, isExpanded) => {
         setExpandedExercises(prev => {
             const newSet = new Set(prev);
-            if (newSet.has(id)) {
-                newSet.delete(id);
+            if (isExpanded) {
+                newSet.add(exerciseId);
             } else {
-                newSet.add(id);
+                newSet.delete(exerciseId);
             }
             return newSet;
         });
     };
 
     const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString();
+        return new Date(dateString).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
     };
 
     if (loading) {
         return (
-            <div className="page">
-                <div className="page-header">
-                    <h1>🏆 Personal Records</h1>
-                </div>
-                <div className="loading">Loading records...</div>
-            </div>
+            <Box>
+                <Box sx={{ mb: 4 }}>
+                    <Typography
+                        variant="h4"
+                        component="h1"
+                        gutterBottom
+                        sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}
+                    >
+                        <EmojiEventsIcon sx={{ fontSize: 'inherit', color: 'primary.main' }} aria-hidden="true" />
+                        Personal Records
+                    </Typography>
+                    <Typography variant="body1" color="text.secondary">
+                        Your best lifts for each exercise, organized by rep count
+                    </Typography>
+                </Box>
+                <Box
+                    sx={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        minHeight: '20vh'
+                    }}
+                    role="status"
+                    aria-label="Loading personal records"
+                >
+                    <CircularProgress aria-label="Loading" />
+                </Box>
+            </Box>
         );
     }
 
     return (
-        <div className="page">
-            <div className="page-header">
-                <h1>🏆 Personal Records</h1>
-                <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
+        <Box sx={{ maxWidth: 900, mx: 'auto' }}>
+            {/* Page Header */}
+            <Box sx={{ mb: 4 }}>
+                <Typography
+                    variant="h4"
+                    component="h1"
+                    gutterBottom
+                    sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}
+                >
+                    <EmojiEventsIcon sx={{ fontSize: 'inherit', color: 'primary.main' }} aria-hidden="true" />
+                    Personal Records
+                </Typography>
+                <Typography variant="body1" color="text.secondary">
                     Your best lifts for each exercise, organized by rep count
-                </p>
-            </div>
+                </Typography>
+            </Box>
 
+            {/* Empty State */}
             {records.length === 0 ? (
-                <div className="empty-state">
-                    <p>No personal records yet. Start logging workouts to track your PRs!</p>
-                </div>
+                <Card>
+                    <CardContent>
+                        <Box
+                            sx={{
+                                textAlign: 'center',
+                                py: 6,
+                                px: 2
+                            }}
+                        >
+                            <EmojiEventsIcon
+                                sx={{
+                                    fontSize: 80,
+                                    color: 'text.secondary',
+                                    mb: 2
+                                }}
+                                aria-hidden="true"
+                            />
+                            <Typography
+                                variant="h5"
+                                component="h2"
+                                gutterBottom
+                                sx={{ fontWeight: 'medium' }}
+                            >
+                                No personal records yet
+                            </Typography>
+                            <Typography variant="body1" color="text.secondary">
+                                Start logging workouts to track your PRs!
+                            </Typography>
+                        </Box>
+                    </CardContent>
+                </Card>
             ) : (
-                <div className="pr-list">
-                    {records.map(exercise => (
-                        <div key={exercise.exerciseDefinitionId} className="card" style={{ marginBottom: '1rem' }}>
-                            <div
-                                className="card-header"
-                                onClick={() => toggleExpand(exercise.exerciseDefinitionId)}
-                                style={{
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    padding: '1rem'
+                <Box component="section" aria-label="Personal records by exercise">
+                    {records.map((exercise) => (
+                        <Accordion
+                            key={exercise.exerciseDefinitionId}
+                            expanded={expandedExercises.has(exercise.exerciseDefinitionId)}
+                            onChange={handleAccordionChange(exercise.exerciseDefinitionId)}
+                            sx={{ mb: 2 }}
+                            slotProps={{
+                                transition: { unmountOnExit: false }
+                            }}
+                        >
+                            <AccordionSummary
+                                expandIcon={<ExpandMoreIcon />}
+                                aria-controls={`exercise-${exercise.exerciseDefinitionId}-content`}
+                                id={`exercise-${exercise.exerciseDefinitionId}-header`}
+                                sx={{
+                                    '&:focus-visible': {
+                                        outline: '2px solid',
+                                        outlineColor: 'primary.main',
+                                        outlineOffset: '-2px'
+                                    }
                                 }}
                             >
-                                <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    🏋️ {exercise.exerciseName}
-                                    <span style={{
-                                        fontSize: '0.875rem',
-                                        color: 'var(--text-secondary)',
-                                        fontWeight: 'normal'
-                                    }}>
-                                        ({exercise.records.length} PR{exercise.records.length !== 1 ? 's' : ''})
-                                    </span>
-                                </h3>
-                                <span style={{ fontSize: '1.25rem' }}>
-                                    {expandedExercises.has(exercise.exerciseDefinitionId) ? '▼' : '▶'}
-                                </span>
-                            </div>
-
-                            {expandedExercises.has(exercise.exerciseDefinitionId) && (
-                                <div style={{ padding: '0 1rem 1rem 1rem' }}>
-                                    <table className="data-table" style={{ width: '100%' }}>
-                                        <thead>
-                                            <tr>
-                                                <th style={{ textAlign: 'center', width: '80px' }}>Reps</th>
-                                                <th style={{ textAlign: 'center', width: '120px' }}>Weight</th>
-                                                <th style={{ textAlign: 'center' }}>Date Achieved</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {exercise.records.map(record => (
-                                                <tr key={record.reps}>
-                                                    <td style={{ textAlign: 'center', fontWeight: 'bold' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
+                                    <FitnessCenterIcon
+                                        sx={{ color: 'primary.main' }}
+                                        aria-hidden="true"
+                                    />
+                                    <Box sx={{ flexGrow: 1 }}>
+                                        <Typography
+                                            variant="h6"
+                                            component="h2"
+                                            sx={{ fontWeight: 'bold' }}
+                                        >
+                                            {exercise.exerciseName}
+                                        </Typography>
+                                    </Box>
+                                    <Chip
+                                        label={`${exercise.records.length} PR${exercise.records.length !== 1 ? 's' : ''}`}
+                                        size="small"
+                                        color="primary"
+                                        variant="outlined"
+                                        aria-label={`${exercise.records.length} personal record${exercise.records.length !== 1 ? 's' : ''}`}
+                                    />
+                                </Box>
+                            </AccordionSummary>
+                            <AccordionDetails>
+                                <TableContainer>
+                                    <Table
+                                        aria-label={`Personal records for ${exercise.exerciseName}`}
+                                        size="small"
+                                    >
+                                        <TableHead>
+                                            <TableRow>
+                                                <TableCell
+                                                    align="center"
+                                                    sx={{ fontWeight: 'bold' }}
+                                                >
+                                                    Reps
+                                                </TableCell>
+                                                <TableCell
+                                                    align="center"
+                                                    sx={{ fontWeight: 'bold' }}
+                                                >
+                                                    Weight
+                                                </TableCell>
+                                                <TableCell
+                                                    align="center"
+                                                    sx={{ fontWeight: 'bold' }}
+                                                >
+                                                    Date Achieved
+                                                </TableCell>
+                                            </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                            {exercise.records.map((record) => (
+                                                <TableRow
+                                                    key={record.reps}
+                                                    sx={{
+                                                        '&:last-child td, &:last-child th': { border: 0 },
+                                                        '&:hover': { backgroundColor: 'action.hover' }
+                                                    }}
+                                                >
+                                                    <TableCell
+                                                        align="center"
+                                                        sx={{ fontWeight: 'bold' }}
+                                                    >
                                                         {record.reps}
-                                                    </td>
-                                                    <td style={{ textAlign: 'center' }}>
-                                                        <span style={{
-                                                            display: 'inline-flex',
-                                                            alignItems: 'center',
-                                                            gap: '0.25rem',
-                                                            color: 'var(--accent-primary)',
-                                                            fontWeight: 'bold'
-                                                        }}>
-                                                            🏆 {record.weight} lbs
-                                                        </span>
-                                                    </td>
-                                                    <td style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
-                                                        {formatDate(record.achievedDate)}
-                                                    </td>
-                                                </tr>
+                                                    </TableCell>
+                                                    <TableCell align="center">
+                                                        <Box
+                                                            sx={{
+                                                                display: 'inline-flex',
+                                                                alignItems: 'center',
+                                                                gap: 0.5,
+                                                                color: 'primary.main',
+                                                                fontWeight: 'bold'
+                                                            }}
+                                                        >
+                                                            <EmojiEventsIcon
+                                                                fontSize="small"
+                                                                aria-hidden="true"
+                                                            />
+                                                            <span aria-label={`${record.weight} pounds`}>
+                                                                {record.weight} lbs
+                                                            </span>
+                                                        </Box>
+                                                    </TableCell>
+                                                    <TableCell
+                                                        align="center"
+                                                        sx={{ color: 'text.secondary' }}
+                                                    >
+                                                        <Box
+                                                            component="time"
+                                                            dateTime={record.achievedDate}
+                                                        >
+                                                            {formatDate(record.achievedDate)}
+                                                        </Box>
+                                                    </TableCell>
+                                                </TableRow>
                                             ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
-                        </div>
+                                        </TableBody>
+                                    </Table>
+                                </TableContainer>
+                            </AccordionDetails>
+                        </Accordion>
                     ))}
-                </div>
+                </Box>
             )}
-        </div>
+        </Box>
     );
 }
 
