@@ -1,4 +1,39 @@
 import { useState, useEffect } from 'react';
+import {
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    Button,
+    TextField,
+    Select,
+    MenuItem,
+    FormControl,
+    InputLabel,
+    IconButton,
+    Box,
+    Typography,
+    Paper,
+    Accordion,
+    AccordionSummary,
+    AccordionDetails,
+    Grid,
+    Chip,
+    Divider,
+    Collapse,
+    Alert,
+} from '@mui/material';
+import {
+    Close as CloseIcon,
+    Add as AddIcon,
+    Delete as DeleteIcon,
+    ExpandMore as ExpandMoreIcon,
+    ArrowUpward as ArrowUpwardIcon,
+    ArrowDownward as ArrowDownwardIcon,
+    UnfoldMore as UnfoldMoreIcon,
+    UnfoldLess as UnfoldLessIcon,
+    Notes as NotesIcon,
+} from '@mui/icons-material';
 import { workoutsApi } from '../services/api';
 
 /**
@@ -23,6 +58,7 @@ function WorkoutModal({ isOpen, onClose, onSave, workout, initialDate, definitio
     });
     const [collapsedExercises, setCollapsedExercises] = useState(new Set());
     const [showNotes, setShowNotes] = useState(false);
+    const [error, setError] = useState('');
 
     // Computed values
     const usedExerciseDefinitionIds = formData.exercises.map(e => e.exerciseDefinitionId);
@@ -45,8 +81,8 @@ function WorkoutModal({ isOpen, onClose, onSave, workout, initialDate, definitio
                 workoutDate: workout.workoutDate.split('T')[0],
                 exercises,
             });
-            // Initialize all exercises as collapsed
-            setCollapsedExercises(new Set(exercises.map((_, idx) => idx)));
+            // Start with all exercises expanded for better keyboard navigation
+            setCollapsedExercises(new Set());
             setShowNotes(!!workout.description);
         } else if (templateData) {
             // Creating from template
@@ -57,8 +93,8 @@ function WorkoutModal({ isOpen, onClose, onSave, workout, initialDate, definitio
                 workoutDate: initialDate || new Date().toISOString().split('T')[0],
                 exercises: templateData.exercises || [],
             });
-            // Collapse all template exercises initially
-            setCollapsedExercises(new Set((templateData.exercises || []).map((_, idx) => idx)));
+            // Start with all exercises expanded for better keyboard navigation
+            setCollapsedExercises(new Set());
             setShowNotes(!!templateData.description);
         } else {
             // Creating new workout from scratch
@@ -72,6 +108,7 @@ function WorkoutModal({ isOpen, onClose, onSave, workout, initialDate, definitio
             setCollapsedExercises(new Set());
             setShowNotes(false);
         }
+        setError('');
     }, [isOpen, workout, initialDate, templateData]);
 
     const handleInputChange = (e) => {
@@ -86,7 +123,7 @@ function WorkoutModal({ isOpen, onClose, onSave, workout, initialDate, definitio
         const usedIds = formData.exercises.map(e => e.exerciseDefinitionId);
         const unusedDefs = definitions.filter(def => !usedIds.includes(def.id));
         if (unusedDefs.length === 0) {
-            alert('No more exercises to add!');
+            setError('No more exercises to add!');
             return;
         }
         setFormData((prev) => ({
@@ -100,6 +137,7 @@ function WorkoutModal({ isOpen, onClose, onSave, workout, initialDate, definitio
                 },
             ],
         }));
+        setError('');
     };
 
     const handleExerciseChange = (index, field, value) => {
@@ -259,302 +297,308 @@ function WorkoutModal({ isOpen, onClose, onSave, workout, initialDate, definitio
             if (onSave) onSave();
         } catch (error) {
             console.error('Failed to save workout:', error);
-            alert(error.message || 'Failed to save workout. Please check your inputs.');
+            setError(error.message || 'Failed to save workout. Please check your inputs.');
         }
     };
 
-    if (!isOpen) return null;
-
     return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
-                <div className="modal-header">
-                    <h2 className="modal-title">
-                        {workout ? 'Edit Workout' : 'Log Workout'}
-                    </h2>
-                    <button
-                        className="btn btn-secondary btn-icon"
-                        onClick={onClose}
-                    >
-                        ✕
-                    </button>
-                </div>
+        <Dialog
+            open={isOpen}
+            onClose={onClose}
+            maxWidth="md"
+            fullWidth
+            aria-labelledby="workout-dialog-title"
+        >
+            <DialogTitle id="workout-dialog-title" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                {workout ? 'Edit Workout' : 'Log Workout'}
+                <IconButton onClick={onClose} aria-label="Close dialog" edge="end">
+                    <CloseIcon />
+                </IconButton>
+            </DialogTitle>
 
-                <form onSubmit={handleSubmit}>
-                    <div className="modal-body">
+            <form onSubmit={handleSubmit}>
+                <DialogContent dividers>
+                    {error && (
+                        <Alert severity="error" onClose={() => setError('')} sx={{ mb: 2 }}>
+                            {error}
+                        </Alert>
+                    )}
 
-                        <div className="grid grid-2">
-                            <div className="form-group">
-                                <label className="form-label">Date</label>
-                                <input
-                                    type="date"
-                                    name="workoutDate"
-                                    className="form-input"
-                                    value={formData.workoutDate}
-                                    onChange={handleInputChange}
-                                    required
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Duration (minutes)</label>
-                                <input
-                                    type="number"
-                                    name="durationMinutes"
-                                    className="form-input"
-                                    value={formData.durationMinutes}
-                                    onChange={handleInputChange}
-                                    min="1"
-                                    required
-                                />
-                            </div>
-                        </div>
+                    {/* Date and Duration */}
+                    <Grid container spacing={2} sx={{ mb: 3 }}>
+                        <Grid item xs={12} sm={6}>
+                            <TextField
+                                type="date"
+                                name="workoutDate"
+                                label="Date"
+                                fullWidth
+                                required
+                                value={formData.workoutDate}
+                                onChange={handleInputChange}
+                                InputLabelProps={{ shrink: true }}
+                            />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <TextField
+                                type="number"
+                                name="durationMinutes"
+                                label="Duration (minutes)"
+                                fullWidth
+                                required
+                                value={formData.durationMinutes}
+                                onChange={handleInputChange}
+                                inputProps={{ min: 1 }}
+                            />
+                        </Grid>
+                    </Grid>
 
-
-                        <div className="form-group">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                                <label className="form-label" style={{ margin: 0 }}>
-                                    Exercises
-                                </label>
-                                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                    {formData.exercises.length > 0 && (
-                                        <button
-                                            type="button"
-                                            className="btn btn-secondary btn-sm"
-                                            onClick={toggleCollapseAll}
-                                            title={formData.exercises.every((_, idx) => collapsedExercises.has(idx)) ? "Expand all sets" : "Collapse all sets"}
-                                        >
-                                            {formData.exercises.every((_, idx) => collapsedExercises.has(idx)) ? '📂 Expand All' : '📁 Collapse All'}
-                                        </button>
-                                    )}
-                                    <button
-                                        type="button"
-                                        className="btn btn-secondary btn-sm"
-                                        onClick={handleAddExercise}
-                                        disabled={unusedExerciseDefinitions.length === 0}
-                                    >
-                                        ➕ Add Exercise
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="exercise-list">
-                                {formData.exercises.map((exercise, index) => {
-                                    const isCollapsed = collapsedExercises.has(index);
-                                    const availableForThisRow = definitions.filter(d =>
-                                        d.id == exercise.exerciseDefinitionId ||
-                                        !formData.exercises.some((ex, i) => i !== index && ex.exerciseDefinitionId == d.id)
-                                    );
-
-                                    return (
-                                        <div
-                                            key={index}
-                                            style={{
-                                                background: 'var(--bg-secondary)',
-                                                padding: '1rem',
-                                                borderRadius: 'var(--radius-md)',
-                                                marginBottom: '0.5rem',
-                                                border: '1px solid var(--border-color)',
-                                            }}
-                                        >
-                                            {/* Exercise Header with Reorder Controls */}
-                                            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', alignItems: 'center' }}>
-                                                {/* Reorder buttons */}
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                                    <button
-                                                        type="button"
-                                                        className="btn btn-secondary"
-                                                        onClick={() => moveExerciseUp(index)}
-                                                        disabled={index === 0}
-                                                        style={{
-                                                            padding: '2px 8px',
-                                                            fontSize: '0.7rem',
-                                                            minWidth: '28px',
-                                                            opacity: index === 0 ? 0.3 : 1,
-                                                            cursor: index === 0 ? 'not-allowed' : 'pointer'
-                                                        }}
-                                                        title="Move up"
-                                                    >
-                                                        ▲
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        className="btn btn-secondary"
-                                                        onClick={() => moveExerciseDown(index)}
-                                                        disabled={index >= formData.exercises.length - 1}
-                                                        style={{
-                                                            padding: '2px 8px',
-                                                            fontSize: '0.7rem',
-                                                            minWidth: '28px',
-                                                            opacity: index >= formData.exercises.length - 1 ? 0.3 : 1,
-                                                            cursor: index >= formData.exercises.length - 1 ? 'not-allowed' : 'pointer'
-                                                        }}
-                                                        title="Move down"
-                                                    >
-                                                        ▼
-                                                    </button>
-                                                </div>
-
-                                                {/* Exercise dropdown */}
-                                                <select
-                                                    className="form-input"
-                                                    value={exercise.exerciseDefinitionId}
-                                                    onChange={(e) =>
-                                                        handleExerciseChange(index, 'exerciseDefinitionId', e.target.value)
-                                                    }
-                                                    required
-                                                    style={{ flex: 1 }}
-                                                >
-                                                    {availableForThisRow.map(def => (
-                                                        <option key={def.id} value={def.id}>
-                                                            {def.name} ({def.primaryMuscleGroup})
-                                                        </option>
-                                                    ))}
-                                                </select>
-
-                                                {/* Delete button */}
-                                                <button
-                                                    type="button"
-                                                    className="btn btn-danger btn-icon"
-                                                    onClick={() => handleRemoveExercise(index)}
-                                                    title="Remove exercise"
-                                                >
-                                                    ✕
-                                                </button>
-                                            </div>
-
-                                            {/* Sets Section - Collapsible */}
-                                            <div className="sets-container" style={{ marginTop: '0.5rem' }}>
-                                                <div
-                                                    style={{
-                                                        display: 'flex',
-                                                        justifyContent: 'space-between',
-                                                        alignItems: 'center',
-                                                        marginBottom: '0.5rem',
-                                                        cursor: 'pointer',
-                                                        userSelect: 'none'
-                                                    }}
-                                                    onClick={() => toggleExerciseCollapse(index)}
-                                                >
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                        <span style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>
-                                                            {isCollapsed ? '▶' : '▼'} Sets
-                                                        </span>
-                                                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                                            ({exercise.sets.length})
-                                                        </span>
-                                                    </div>
-                                                    {!isCollapsed && (
-                                                        <button
-                                                            type="button"
-                                                            className="btn btn-secondary btn-xs"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleAddSet(index);
-                                                            }}
-                                                        >
-                                                            + Add Set
-                                                        </button>
-                                                    )}
-                                                </div>
-
-                                                {!isCollapsed && (
-                                                    <div style={{
-                                                        animation: 'fadeIn 0.2s ease',
-                                                        overflow: 'hidden'
-                                                    }}>
-                                                        {exercise.sets.map((set, setIndex) => (
-                                                            <div key={setIndex} className="grid grid-3" style={{ gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center' }}>
-                                                                <div className="set-label">#{set.setNumber}</div>
-                                                                <input
-                                                                    type="number"
-                                                                    className="form-input btn-sm"
-                                                                    placeholder="Reps"
-                                                                    value={set.reps || ''}
-                                                                    onChange={(e) => handleSetChange(index, setIndex, 'reps', e.target.value)}
-                                                                    required
-                                                                />
-                                                                <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
-                                                                    <input
-                                                                        type="number"
-                                                                        step="0.5"
-                                                                        className="form-input btn-sm"
-                                                                        placeholder="lbs"
-                                                                        value={set.weight === null ? '' : set.weight}
-                                                                        onChange={(e) => handleSetChange(index, setIndex, 'weight', e.target.value)}
-                                                                        max="2000"
-                                                                    />
-                                                                    <button
-                                                                        type="button"
-                                                                        className="btn btn-danger btn-xs"
-                                                                        onClick={() => handleRemoveSet(index, setIndex)}
-                                                                        disabled={exercise.sets.length === 1}
-                                                                    >
-                                                                        ✕
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {/* Exercise Notes */}
-                                            <div style={{ marginTop: '0.75rem' }}>
-                                                <input
-                                                    type="text"
-                                                    className="form-input btn-sm"
-                                                    placeholder="Exercise notes..."
-                                                    value={exercise.notes || ''}
-                                                    onChange={(e) => handleExerciseChange(index, 'notes', e.target.value)}
-                                                />
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-
-                        {/* Notes Section - Collapsible at bottom */}
-                        <div className="form-group" style={{ marginTop: '1rem' }}>
-                            <button
-                                type="button"
-                                className="btn btn-secondary btn-sm"
-                                onClick={() => setShowNotes(!showNotes)}
-                                style={{ width: '100%' }}
-                            >
-                                {showNotes ? '📝 Hide Notes' : '📝 Add Notes'}
-                                {formData.description && !showNotes && (
-                                    <span style={{ marginLeft: '0.5rem', opacity: 0.7 }}>•</span>
-                                )}
-                            </button>
-                            {showNotes && (
-                                <textarea
-                                    name="description"
-                                    className="form-textarea"
-                                    value={formData.description}
-                                    onChange={handleInputChange}
-                                    placeholder="How did the workout go?"
-                                    style={{ marginTop: '0.5rem' }}
-                                />
+                    {/* Exercises Section Header */}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                        <Typography variant="h6" component="h3">
+                            Exercises
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                            {formData.exercises.length > 0 && (
+                                <Button
+                                    type="button"
+                                    size="small"
+                                    variant="outlined"
+                                    onClick={toggleCollapseAll}
+                                    startIcon={formData.exercises.every((_, idx) => collapsedExercises.has(idx)) ? <UnfoldMoreIcon /> : <UnfoldLessIcon />}
+                                    sx={{ textTransform: 'none' }}
+                                    aria-label={formData.exercises.every((_, idx) => collapsedExercises.has(idx)) ? "Expand all exercises" : "Collapse all exercises"}
+                                >
+                                    {formData.exercises.every((_, idx) => collapsedExercises.has(idx)) ? 'Expand All' : 'Collapse All'}
+                                </Button>
                             )}
-                        </div>
-                    </div>
+                            <Button
+                                type="button"
+                                size="small"
+                                variant="contained"
+                                onClick={handleAddExercise}
+                                disabled={unusedExerciseDefinitions.length === 0}
+                                startIcon={<AddIcon />}
+                                sx={{ textTransform: 'none' }}
+                            >
+                                Add Exercise
+                            </Button>
+                        </Box>
+                    </Box>
 
-                    <div className="modal-footer">
-                        <button
+                    {/* Exercises List */}
+                    {formData.exercises.map((exercise, index) => {
+                        const isCollapsed = collapsedExercises.has(index);
+                        const availableForThisRow = definitions.filter(d =>
+                            d.id == exercise.exerciseDefinitionId ||
+                            !formData.exercises.some((ex, i) => i !== index && ex.exerciseDefinitionId == d.id)
+                        );
+                        const exerciseName = definitions.find(d => d.id == exercise.exerciseDefinitionId)?.name || 'Exercise';
+
+                        return (
+                            <Paper key={index} elevation={1} sx={{ mb: 2, p: 2 }}>
+                                {/* Exercise Header */}
+                                <Box sx={{ display: 'flex', gap: 1, mb: 2, alignItems: 'center' }}>
+                                    {/* Reorder buttons */}
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => moveExerciseUp(index)}
+                                            disabled={index === 0}
+                                            aria-label={`Move ${exerciseName} up`}
+                                        >
+                                            <ArrowUpwardIcon fontSize="small" />
+                                        </IconButton>
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => moveExerciseDown(index)}
+                                            disabled={index >= formData.exercises.length - 1}
+                                            aria-label={`Move ${exerciseName} down`}
+                                        >
+                                            <ArrowDownwardIcon fontSize="small" />
+                                        </IconButton>
+                                    </Box>
+
+                                    {/* Exercise dropdown */}
+                                    <FormControl fullWidth required>
+                                        <InputLabel id={`exercise-${index}-label`}>Exercise</InputLabel>
+                                        <Select
+                                            labelId={`exercise-${index}-label`}
+                                            value={exercise.exerciseDefinitionId}
+                                            label="Exercise"
+                                            onChange={(e) =>
+                                                handleExerciseChange(index, 'exerciseDefinitionId', e.target.value)
+                                            }
+                                        >
+                                            {availableForThisRow.map(def => (
+                                                <MenuItem key={def.id} value={def.id}>
+                                                    {def.name} ({def.primaryMuscleGroup})
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+
+                                    {/* Delete button */}
+                                    <IconButton
+                                        color="error"
+                                        onClick={() => handleRemoveExercise(index)}
+                                        aria-label={`Remove ${exerciseName}`}
+                                    >
+                                        <DeleteIcon />
+                                    </IconButton>
+                                </Box>
+
+                                {/* Sets Section - Collapsible */}
+                                <Box>
+                                    <Box
+                                        sx={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                            mb: 1,
+                                            cursor: 'pointer',
+                                        }}
+                                        onClick={() => toggleExerciseCollapse(index)}
+                                        role="button"
+                                        tabIndex={-1}
+                                        aria-expanded={!isCollapsed}
+                                        aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} sets for ${exerciseName}`}
+                                    >
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                            <ExpandMoreIcon
+                                                sx={{
+                                                    transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
+                                                    transition: 'transform 0.2s',
+                                                }}
+                                            />
+                                            <Typography variant="subtitle2" fontWeight={600}>
+                                                Sets
+                                            </Typography>
+                                            <Chip label={exercise.sets.length} size="small" />
+                                        </Box>
+                                        {!isCollapsed && (
+                                            <Button
+                                                type="button"
+                                                size="small"
+                                                variant="outlined"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleAddSet(index);
+                                                }}
+                                                onKeyDown={(e) => {
+                                                    // Prevent parent's keyboard handler from interfering
+                                                    if (e.key === 'Enter' || e.key === ' ') {
+                                                        e.stopPropagation();
+                                                    }
+                                                }}
+                                                startIcon={<AddIcon />}
+                                                sx={{ textTransform: 'none' }}
+                                            >
+                                                Add Set
+                                            </Button>
+                                        )}
+                                    </Box>
+
+                                    <Collapse in={!isCollapsed}>
+                                        <Box sx={{ mt: 1 }}>
+                                            {exercise.sets.map((set, setIndex) => (
+                                                <Grid container spacing={1} key={setIndex} sx={{ mb: 1, alignItems: 'center' }}>
+                                                    <Grid item xs={2}>
+                                                        <Chip label={`#${set.setNumber}`} size="small" sx={{ width: '100%' }} />
+                                                    </Grid>
+                                                    <Grid item xs={4}>
+                                                        <TextField
+                                                            type="number"
+                                                            label="Reps"
+                                                            size="small"
+                                                            fullWidth
+                                                            required
+                                                            value={set.reps || ''}
+                                                            onChange={(e) => handleSetChange(index, setIndex, 'reps', e.target.value)}
+                                                            inputProps={{ min: 1 }}
+                                                        />
+                                                    </Grid>
+                                                    <Grid item xs={4}>
+                                                        <TextField
+                                                            type="number"
+                                                            label="Weight (lbs)"
+                                                            size="small"
+                                                            fullWidth
+                                                            value={set.weight === null ? '' : set.weight}
+                                                            onChange={(e) => handleSetChange(index, setIndex, 'weight', e.target.value)}
+                                                            inputProps={{ step: 0.5, max: 2000 }}
+                                                        />
+                                                    </Grid>
+                                                    <Grid item xs={2}>
+                                                        <IconButton
+                                                            color="error"
+                                                            size="small"
+                                                            onClick={() => handleRemoveSet(index, setIndex)}
+                                                            disabled={exercise.sets.length === 1}
+                                                            aria-label={`Remove set ${setIndex + 1} from ${exerciseName}`}
+                                                        >
+                                                            <DeleteIcon fontSize="small" />
+                                                        </IconButton>
+                                                    </Grid>
+                                                </Grid>
+                                            ))}
+                                        </Box>
+                                    </Collapse>
+                                </Box>
+
+                                {/* Exercise Notes */}
+                                <TextField
+                                    label="Exercise notes"
+                                    size="small"
+                                    fullWidth
+                                    value={exercise.notes || ''}
+                                    onChange={(e) => handleExerciseChange(index, 'notes', e.target.value)}
+                                    sx={{ mt: 1 }}
+                                    placeholder="Add notes for this exercise..."
+                                />
+                            </Paper>
+                        );
+                    })}
+
+                    {/* Workout Notes Section - Collapsible */}
+                    <Box sx={{ mt: 3 }}>
+                        <Button
                             type="button"
-                            className="btn btn-secondary"
-                            onClick={onClose}
+                            fullWidth
+                            variant="outlined"
+                            onClick={() => setShowNotes(!showNotes)}
+                            startIcon={<NotesIcon />}
+                            sx={{ textTransform: 'none', justifyContent: 'flex-start' }}
                         >
-                            Cancel
-                        </button>
-                        <button type="submit" className="btn btn-primary">
-                            {workout ? 'Save Changes' : 'Log Workout'}
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+                            {showNotes ? 'Hide Workout Notes' : 'Add Workout Notes'}
+                            {formData.description && !showNotes && (
+                                <Chip label="•" size="small" sx={{ ml: 1 }} />
+                            )}
+                        </Button>
+                        <Collapse in={showNotes}>
+                            <TextField
+                                name="description"
+                                multiline
+                                rows={3}
+                                fullWidth
+                                value={formData.description}
+                                onChange={handleInputChange}
+                                placeholder="How did the workout go?"
+                                sx={{ mt: 1 }}
+                            />
+                        </Collapse>
+                    </Box>
+                </DialogContent>
+
+                <DialogActions sx={{ px: 3, py: 2 }}>
+                    <Button type="button" onClick={onClose} sx={{ textTransform: 'none' }}>
+                        Cancel
+                    </Button>
+                    <Button type="submit" variant="contained" sx={{ textTransform: 'none' }}>
+                        {workout ? 'Save Changes' : 'Log Workout'}
+                    </Button>
+                </DialogActions>
+            </form>
+        </Dialog>
     );
 }
 
