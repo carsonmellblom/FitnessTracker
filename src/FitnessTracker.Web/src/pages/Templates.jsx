@@ -1,4 +1,29 @@
 import { useState, useEffect } from 'react';
+import {
+    Box,
+    Typography,
+    Button,
+    Card,
+    CardContent,
+    IconButton,
+    Grid,
+    CircularProgress,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    TextField,
+    MenuItem,
+    Stack,
+    Divider,
+    Paper
+} from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
+import FolderSpecialIcon from '@mui/icons-material/FolderSpecial';
+import CloseIcon from '@mui/icons-material/Close';
 import { templatesApi, exerciseDefinitionsApi, workoutsApi } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 
@@ -9,6 +34,8 @@ function Templates() {
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [editingTemplate, setEditingTemplate] = useState(null);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [templateToDelete, setTemplateToDelete] = useState(null);
     const [formData, setFormData] = useState({
         title: '',
         description: '',
@@ -186,14 +213,28 @@ function Templates() {
         }
     };
 
-    const handleDelete = async (id) => {
-        if (!window.confirm('Are you sure you want to delete this template?')) return;
+    const handleDeleteClick = (template) => {
+        setTemplateToDelete(template);
+        setDeleteDialogOpen(true);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!templateToDelete) return;
+
         try {
-            await templatesApi.delete(id);
+            await templatesApi.delete(templateToDelete.id);
+            setDeleteDialogOpen(false);
+            setTemplateToDelete(null);
             loadTemplates();
         } catch (error) {
             console.error('Failed to delete template:', error);
+            alert('Failed to delete template.');
         }
+    };
+
+    const handleDeleteCancel = () => {
+        setDeleteDialogOpen(false);
+        setTemplateToDelete(null);
     };
 
     const handleLogWorkout = async (templateId) => {
@@ -209,217 +250,402 @@ function Templates() {
 
     if (loading) {
         return (
-            <div className="loading">
-                <div className="spinner"></div>
-            </div>
+            <Box
+                sx={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    minHeight: '50vh'
+                }}
+                role="status"
+                aria-label="Loading templates"
+            >
+                <CircularProgress aria-label="Loading" />
+            </Box>
         );
     }
 
     return (
-        <div className="fade-in">
-            <div className="page-header">
-                <h1 className="page-title">Workout Templates</h1>
-                <button className="btn btn-primary" onClick={() => handleOpenModal()}>
-                    ➕ Create Template
-                </button>
-            </div>
+        <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
+            {/* Page Header */}
+            <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography
+                    variant="h4"
+                    component="h1"
+                    sx={{ fontWeight: 'bold' }}
+                >
+                    Workout Templates
+                </Typography>
+                <Button
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    onClick={() => handleOpenModal()}
+                    aria-label="Create new template"
+                >
+                    Create Template
+                </Button>
+            </Box>
 
+            {/* Empty State */}
             {templates.length === 0 ? (
-                <div className="card">
-                    <div className="empty-state">
-                        <div className="empty-state-icon">📋</div>
-                        <h3>No templates yet</h3>
-                        <p>Create templates for your regular routines to log workouts faster!</p>
-                        <button
-                            className="btn btn-primary"
-                            onClick={() => handleOpenModal()}
-                            style={{ marginTop: '1rem' }}
+                <Card>
+                    <CardContent>
+                        <Box
+                            sx={{
+                                textAlign: 'center',
+                                py: 6,
+                                px: 2
+                            }}
                         >
-                            Create Your First Template
-                        </button>
-                    </div>
-                </div>
+                            <FolderSpecialIcon
+                                sx={{
+                                    fontSize: 80,
+                                    color: 'text.secondary',
+                                    mb: 2
+                                }}
+                                aria-hidden="true"
+                            />
+                            <Typography
+                                variant="h5"
+                                component="h2"
+                                gutterBottom
+                                sx={{ fontWeight: 'medium' }}
+                            >
+                                No templates yet
+                            </Typography>
+                            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+                                Create templates for your regular routines to log workouts faster!
+                            </Typography>
+                            <Button
+                                variant="contained"
+                                startIcon={<AddIcon />}
+                                onClick={() => handleOpenModal()}
+                                aria-label="Create your first template"
+                            >
+                                Create Your First Template
+                            </Button>
+                        </Box>
+                    </CardContent>
+                </Card>
             ) : (
-                <div className="grid grid-2">
+                <Grid container spacing={3}>
                     {templates.map((template) => (
-                        <div key={template.id} className="card">
-                            <div className="card-header">
-                                <div>
-                                    <h3 className="card-title">{template.title}</h3>
-                                    <p className="card-subtitle">
-                                        {template.exercises.length} exercises
-                                    </p>
-                                </div>
-                                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                    <button
-                                        className="btn btn-primary btn-sm"
-                                        onClick={() => handleLogWorkout(template.id)}
-                                        title="Log Workout from Template"
-                                    >
-                                        🚀 Log
-                                    </button>
-                                    <button
-                                        className="btn btn-secondary btn-sm"
-                                        onClick={() => handleOpenModal(template)}
-                                    >
-                                        ✏️
-                                    </button>
-                                    <button
-                                        className="btn btn-danger btn-sm"
-                                        onClick={() => handleDelete(template.id)}
-                                    >
-                                        🗑️
-                                    </button>
-                                </div>
-                            </div>
+                        <Grid item xs={12} md={6} key={template.id}>
+                            <Card
+                                sx={{
+                                    height: '100%',
+                                    display: 'flex',
+                                    flexDirection: 'column'
+                                }}
+                                component="article"
+                                aria-label={`Template: ${template.title}`}
+                            >
+                                <CardContent sx={{ flexGrow: 1 }}>
+                                    {/* Card Header */}
+                                    <Box sx={{ mb: 2 }}>
+                                        <Box sx={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'flex-start',
+                                            mb: 1
+                                        }}>
+                                            <Box>
+                                                <Typography
+                                                    variant="h6"
+                                                    component="h2"
+                                                    sx={{ fontWeight: 'bold' }}
+                                                >
+                                                    {template.title}
+                                                </Typography>
+                                                <Typography
+                                                    variant="caption"
+                                                    color="text.secondary"
+                                                >
+                                                    {template.exercises.length} exercises
+                                                </Typography>
+                                            </Box>
+                                            <Stack direction="row" spacing={0.5}>
+                                                <IconButton
+                                                    size="small"
+                                                    color="primary"
+                                                    onClick={() => handleLogWorkout(template.id)}
+                                                    aria-label={`Log workout from ${template.title}`}
+                                                    title="Log Workout from Template"
+                                                >
+                                                    <RocketLaunchIcon fontSize="small" />
+                                                </IconButton>
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={() => handleOpenModal(template)}
+                                                    aria-label={`Edit ${template.title}`}
+                                                >
+                                                    <EditIcon fontSize="small" />
+                                                </IconButton>
+                                                <IconButton
+                                                    size="small"
+                                                    color="error"
+                                                    onClick={() => handleDeleteClick(template)}
+                                                    aria-label={`Delete ${template.title}`}
+                                                >
+                                                    <DeleteIcon fontSize="small" />
+                                                </IconButton>
+                                            </Stack>
+                                        </Box>
+                                    </Box>
 
-                            {template.description && (
-                                <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-                                    {template.description}
-                                </p>
-                            )}
+                                    {/* Description */}
+                                    {template.description && (
+                                        <Typography
+                                            variant="body2"
+                                            color="text.secondary"
+                                            sx={{ mb: 2 }}
+                                        >
+                                            {template.description}
+                                        </Typography>
+                                    )}
 
-                            <div className="exercise-list">
-                                {template.exercises.map((exercise) => (
-                                    <div key={exercise.id} className="exercise-item-vertical" style={{ marginBottom: '0.5rem' }}>
-                                        <div>
-                                            <strong>{exercise.exerciseName}</strong>
-                                            <span style={{ marginLeft: '1rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                                                {exercise.targetSets.length} sets
-                                            </span>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+                                    {/* Exercises List */}
+                                    <Stack spacing={1} component="ul" sx={{ listStyle: 'none', p: 0, m: 0 }}>
+                                        {template.exercises.map((exercise) => (
+                                            <Box
+                                                key={exercise.id}
+                                                component="li"
+                                                sx={{
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between',
+                                                    alignItems: 'center',
+                                                    py: 0.5
+                                                }}
+                                            >
+                                                <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                                                    {exercise.exerciseName}
+                                                </Typography>
+                                                <Typography
+                                                    variant="caption"
+                                                    color="text.secondary"
+                                                    aria-label={`${exercise.targetSets.length} sets`}
+                                                >
+                                                    {exercise.targetSets.length} sets
+                                                </Typography>
+                                            </Box>
+                                        ))}
+                                    </Stack>
+                                </CardContent>
+                            </Card>
+                        </Grid>
                     ))}
-                </div>
+                </Grid>
             )}
 
+            {/* Delete Confirmation Dialog */}
+            <Dialog
+                open={deleteDialogOpen}
+                onClose={handleDeleteCancel}
+                aria-labelledby="delete-dialog-title"
+                aria-describedby="delete-dialog-description"
+            >
+                <DialogTitle id="delete-dialog-title">
+                    Delete Template?
+                </DialogTitle>
+                <DialogContent>
+                    <Typography id="delete-dialog-description">
+                        Are you sure you want to delete "{templateToDelete?.title}"? This action cannot be undone.
+                    </Typography>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={handleDeleteCancel} autoFocus>
+                        Cancel
+                    </Button>
+                    <Button onClick={handleDeleteConfirm} color="error" variant="contained">
+                        Delete
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
             {/* Template Modal */}
-            {showModal && (
-                <div className="modal-overlay" onClick={handleCloseModal}>
-                    <div className="modal" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h2 className="modal-title">
-                                {editingTemplate ? 'Edit Template' : 'Create Template'}
-                            </h2>
-                            <button className="btn btn-secondary btn-icon" onClick={handleCloseModal}>
-                                ✕
-                            </button>
-                        </div>
+            <Dialog
+                open={showModal}
+                onClose={handleCloseModal}
+                maxWidth="md"
+                fullWidth
+                aria-labelledby="template-dialog-title"
+            >
+                <DialogTitle id="template-dialog-title">
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="h6" component="span">
+                            {editingTemplate ? 'Edit Template' : 'Create Template'}
+                        </Typography>
+                        <IconButton
+                            onClick={handleCloseModal}
+                            aria-label="Close dialog"
+                            size="small"
+                        >
+                            <CloseIcon />
+                        </IconButton>
+                    </Box>
+                </DialogTitle>
 
-                        <form onSubmit={handleSubmit}>
-                            <div className="modal-body">
-                                <div className="form-group">
-                                    <label className="form-label">Template Title</label>
-                                    <input
-                                        type="text"
-                                        name="title"
-                                        className="form-input"
-                                        value={formData.title}
-                                        onChange={handleInputChange}
-                                        placeholder="e.g., Push Day A"
-                                        required
-                                    />
-                                </div>
+                <form onSubmit={handleSubmit}>
+                    <DialogContent dividers>
+                        <Stack spacing={3}>
+                            {/* Template Title */}
+                            <TextField
+                                label="Template Title"
+                                name="title"
+                                value={formData.title}
+                                onChange={handleInputChange}
+                                placeholder="e.g., Push Day A"
+                                required
+                                fullWidth
+                                autoFocus
+                            />
 
-                                <div className="form-group">
-                                    <label className="form-label">Description (optional)</label>
-                                    <textarea
-                                        name="description"
-                                        className="form-textarea"
-                                        value={formData.description}
-                                        onChange={handleInputChange}
-                                        placeholder="What is this routine for?"
-                                    />
-                                </div>
+                            {/* Description */}
+                            <TextField
+                                label="Description (optional)"
+                                name="description"
+                                value={formData.description}
+                                onChange={handleInputChange}
+                                placeholder="What is this routine for?"
+                                multiline
+                                rows={2}
+                                fullWidth
+                            />
 
-                                <div className="form-group">
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                                        <label className="form-label" style={{ margin: 0 }}>Exercises</label>
-                                        <button type="button" className="btn btn-secondary btn-sm" onClick={handleAddExercise}>
-                                            ➕ Add Exercise
-                                        </button>
-                                    </div>
+                            {/* Exercises Section */}
+                            <Box>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                                    <Typography variant="subtitle1" component="h3" sx={{ fontWeight: 'bold' }}>
+                                        Exercises
+                                    </Typography>
+                                    <Button
+                                        size="small"
+                                        startIcon={<AddIcon />}
+                                        onClick={handleAddExercise}
+                                        aria-label="Add exercise"
+                                    >
+                                        Add Exercise
+                                    </Button>
+                                </Box>
 
-                                    <div className="exercise-list">
-                                        {formData.exercises.map((exercise, index) => (
-                                            <div key={index} style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: 'var(--radius-md)', marginBottom: '1rem' }}>
-                                                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-                                                    <select
-                                                        className="form-input"
-                                                        value={exercise.exerciseDefinitionId}
-                                                        onChange={(e) => handleExerciseChange(index, 'exerciseDefinitionId', e.target.value)}
-                                                        required
+                                <Stack spacing={2}>
+                                    {formData.exercises.map((exercise, index) => (
+                                        <Paper
+                                            key={index}
+                                            sx={{ p: 2, bgcolor: 'action.hover' }}
+                                            component="section"
+                                            aria-label={`Exercise ${index + 1}`}
+                                        >
+                                            {/* Exercise Selection and Remove */}
+                                            <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+                                                <TextField
+                                                    select
+                                                    value={exercise.exerciseDefinitionId}
+                                                    onChange={(e) => handleExerciseChange(index, 'exerciseDefinitionId', e.target.value)}
+                                                    required
+                                                    fullWidth
+                                                    label="Exercise"
+                                                    size="small"
+                                                >
+                                                    {definitions.map(def => (
+                                                        <MenuItem key={def.id} value={def.id}>
+                                                            {def.name}
+                                                        </MenuItem>
+                                                    ))}
+                                                </TextField>
+                                                <IconButton
+                                                    color="error"
+                                                    onClick={() => handleRemoveExercise(index)}
+                                                    aria-label={`Remove exercise ${index + 1}`}
+                                                    size="small"
+                                                >
+                                                    <CloseIcon />
+                                                </IconButton>
+                                            </Stack>
+
+                                            {/* Target Sets */}
+                                            <Box>
+                                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                                                    <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                                                        Target Sets
+                                                    </Typography>
+                                                    <Button
+                                                        size="small"
+                                                        onClick={() => handleAddSet(index)}
+                                                        aria-label="Add set"
                                                     >
-                                                        {definitions.map(def => (
-                                                            <option key={def.id} value={def.id}>
-                                                                {def.name}
-                                                            </option>
-                                                        ))}
-                                                    </select>
-                                                    <button type="button" className="btn btn-danger btn-icon" onClick={() => handleRemoveExercise(index)}>
-                                                        ✕
-                                                    </button>
-                                                </div>
-
-                                                <div className="sets-container">
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                                                        <span style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>Target Sets</span>
-                                                        <button type="button" className="btn btn-secondary btn-xs" onClick={() => handleAddSet(index)}>
-                                                            + Add Set
-                                                        </button>
-                                                    </div>
+                                                        + Add Set
+                                                    </Button>
+                                                </Box>
+                                                <Stack spacing={1}>
                                                     {exercise.targetSets?.map((set, setIndex) => (
-                                                        <div key={setIndex} className="grid grid-3" style={{ gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center' }}>
-                                                            <div className="set-label">#{set.setNumber}</div>
-                                                            <input
+                                                        <Stack
+                                                            key={setIndex}
+                                                            direction="row"
+                                                            spacing={1}
+                                                            alignItems="center"
+                                                        >
+                                                            <Typography
+                                                                variant="body2"
+                                                                sx={{
+                                                                    minWidth: 40,
+                                                                    fontWeight: 'medium',
+                                                                    color: 'text.secondary'
+                                                                }}
+                                                            >
+                                                                #{set.setNumber}
+                                                            </Typography>
+                                                            <TextField
                                                                 type="number"
-                                                                className="form-input btn-sm"
                                                                 placeholder="Target Reps"
                                                                 value={set.targetReps || ''}
                                                                 onChange={(e) => handleSetChange(index, setIndex, 'targetReps', e.target.value)}
                                                                 required
+                                                                size="small"
+                                                                sx={{ flex: 1 }}
+                                                                inputProps={{ 'aria-label': `Set ${set.setNumber} target reps` }}
                                                             />
-                                                            <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
-                                                                <input
-                                                                    type="number"
-                                                                    step="0.5"
-                                                                    className="form-input btn-sm"
-                                                                    placeholder="Target lbs"
-                                                                    value={set.targetWeight === null ? '' : set.targetWeight}
-                                                                    onChange={(e) => handleSetChange(index, setIndex, 'targetWeight', e.target.value)}
-                                                                />
-                                                                <button
-                                                                    type="button"
-                                                                    className="btn btn-danger btn-xs"
-                                                                    onClick={() => handleRemoveSet(index, setIndex)}
-                                                                    disabled={exercise.targetSets.length === 1}
-                                                                >
-                                                                    ✕
-                                                                </button>
-                                                            </div>
-                                                        </div>
+                                                            <TextField
+                                                                type="number"
+                                                                step="0.5"
+                                                                placeholder="Target lbs"
+                                                                value={set.targetWeight === null ? '' : set.targetWeight}
+                                                                onChange={(e) => handleSetChange(index, setIndex, 'targetWeight', e.target.value)}
+                                                                size="small"
+                                                                sx={{ flex: 1 }}
+                                                                inputProps={{ 'aria-label': `Set ${set.setNumber} target weight` }}
+                                                            />
+                                                            <IconButton
+                                                                color="error"
+                                                                size="small"
+                                                                onClick={() => handleRemoveSet(index, setIndex)}
+                                                                disabled={exercise.targetSets.length === 1}
+                                                                aria-label={`Remove set ${set.setNumber}`}
+                                                            >
+                                                                <CloseIcon fontSize="small" />
+                                                            </IconButton>
+                                                        </Stack>
                                                     ))}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
+                                                </Stack>
+                                            </Box>
+                                        </Paper>
+                                    ))}
+                                </Stack>
+                            </Box>
+                        </Stack>
+                    </DialogContent>
 
-                            <div className="modal-footer">
-                                <button type="button" className="btn btn-secondary" onClick={handleCloseModal}>Cancel</button>
-                                <button type="submit" className="btn btn-primary">
-                                    {editingTemplate ? 'Save Changes' : 'Create Template'}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-        </div>
+                    <DialogActions>
+                        <Button onClick={handleCloseModal}>
+                            Cancel
+                        </Button>
+                        <Button type="submit" variant="contained">
+                            {editingTemplate ? 'Save Changes' : 'Create Template'}
+                        </Button>
+                    </DialogActions>
+                </form>
+            </Dialog>
+        </Box>
     );
 }
 
