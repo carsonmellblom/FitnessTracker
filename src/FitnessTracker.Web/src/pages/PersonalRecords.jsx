@@ -99,19 +99,20 @@ function PersonalRecords() {
     }
 
     return (
-        <Box sx={{ maxWidth: 900, mx: 'auto' }}>
+        <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
             {/* Page Header */}
             <Box sx={{ mb: 4 }}>
-                <Typography
-                    variant="h4"
-                    component="h1"
-                    gutterBottom
-                    sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}
-                >
-                    <EmojiEventsIcon sx={{ fontSize: 'inherit', color: 'primary.main' }} aria-hidden="true" />
-                    Personal Records
-                </Typography>
-                <Typography variant="body1" color="text.secondary">
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                    <EmojiEventsIcon sx={{ fontSize: 32, color: 'primary.main' }} aria-hidden="true" />
+                    <Typography
+                        variant="h4"
+                        component="h1"
+                        sx={{ fontWeight: 'bold' }}
+                    >
+                        Personal Records
+                    </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
                     Your best lifts for each exercise, organized by rep count
                 </Typography>
             </Box>
@@ -124,7 +125,7 @@ function PersonalRecords() {
                             sx={{
                                 textAlign: 'center',
                                 py: 6,
-                                px: 2
+                                px: 2,
                             }}
                         >
                             <EmojiEventsIcon
@@ -150,7 +151,7 @@ function PersonalRecords() {
                     </CardContent>
                 </Card>
             ) : (
-                <Box component="section" aria-label="Personal records by exercise">
+                <Box sx={{ maxWidth: 1200, mx: 'auto' }} component="section" aria-label="Personal records by exercise">
                     {records.map((exercise) => (
                         <Accordion
                             key={exercise.exerciseDefinitionId}

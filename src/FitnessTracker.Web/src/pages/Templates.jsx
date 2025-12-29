@@ -268,14 +268,19 @@ function Templates() {
     return (
         <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
             {/* Page Header */}
-            <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography
-                    variant="h4"
-                    component="h1"
-                    sx={{ fontWeight: 'bold' }}
-                >
-                    Workout Templates
-                </Typography>
+            <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                        <FolderSpecialIcon sx={{ fontSize: 32, color: 'primary.main' }} aria-hidden="true" />
+                        <Typography
+                            variant="h4"
+                            component="h1"
+                            sx={{ fontWeight: 'bold' }}
+                        >
+                            Workout Templates
+                        </Typography>
+                    </Box>
+                </Box>
                 <Button
                     variant="contained"
                     startIcon={<AddIcon />}
