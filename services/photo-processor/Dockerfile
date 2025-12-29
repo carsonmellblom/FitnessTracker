@@ -3,7 +3,7 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Install system dependencies for Pillow and OpenCV
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     libjpeg-dev \
     zlib1g-dev \
     libpng-dev \
@@ -21,6 +21,13 @@ COPY *.py .
 
 # Create uploads directory
 RUN mkdir -p /app/uploads
+
+# Create a non-root user to run the application
+RUN useradd -m -u 1000 -s /bin/bash appuser && \
+    chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
 
 # Ensure Python output is visible in Docker logs
 ENV PYTHONUNBUFFERED=1
