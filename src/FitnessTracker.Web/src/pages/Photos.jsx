@@ -31,6 +31,18 @@ import AccessibilityNewIcon from '@mui/icons-material/AccessibilityNew';
 import { photosApi, getImageUrl } from '../services/api';
 import LandmarkOverlay from '../components/LandmarkOverlay';
 
+// Helper function to get chip color based on quality score
+const getQualityScoreColor = (score) => {
+    switch (score) {
+        case 'excellent':
+            return 'success';
+        case 'good':
+            return 'warning';
+        default:
+            return 'default';
+    }
+};
+
 function Photos() {
     const [photos, setPhotos] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -212,10 +224,7 @@ function Photos() {
                             </Typography>
                             <Chip
                                 label={analysis.image_quality.quality_score}
-                                color={
-                                    analysis.image_quality.quality_score === 'excellent' ? 'success' :
-                                        analysis.image_quality.quality_score === 'good' ? 'warning' : 'default'
-                                }
+                                color={getQualityScoreColor(analysis.image_quality.quality_score)}
                                 size="small"
                             />
                         </Box>
@@ -270,7 +279,7 @@ function Photos() {
                                         variant="caption"
                                         color="text.secondary"
                                     >
-                                        {rec}
+                                        {typeof rec === 'string' ? rec : (rec.text || rec)}
                                     </Typography>
                                 ))}
                             </Box>
