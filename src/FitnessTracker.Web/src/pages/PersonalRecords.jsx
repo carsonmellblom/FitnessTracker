@@ -11,7 +11,6 @@ import {
     TableContainer,
     TableHead,
     TableRow,
-    Paper,
     Chip,
     CircularProgress,
     Card,
@@ -189,11 +188,11 @@ function PersonalRecords() {
                                         </Typography>
                                     </Box>
                                     <Chip
-                                        label={`${exercise.records.length} PR${exercise.records.length !== 1 ? 's' : ''}`}
+                                        label={`${exercise.records.length} PR${exercise.records.length === 1 ? '' : 's'}`}
                                         size="small"
                                         color="primary"
                                         variant="outlined"
-                                        aria-label={`${exercise.records.length} personal record${exercise.records.length !== 1 ? 's' : ''}`}
+                                        aria-label={`${exercise.records.length} personal record${exercise.records.length === 1 ? '' : 's'}`}
                                     />
                                 </Box>
                             </AccordionSummary>
