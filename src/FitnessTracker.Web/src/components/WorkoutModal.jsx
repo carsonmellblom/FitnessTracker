@@ -412,8 +412,25 @@ function WorkoutModal({ isOpen, onClose, onSave, workout, initialDate, definitio
                         );
                         const exerciseName = definitions.find(d => d.id == exercise.exerciseDefinitionId)?.name || 'Exercise';
 
+                        // Check if user has entered data (more than 1 set, or weightEntered)
+                        const hasEnteredData = exercise.sets.length > 1 || exercise.sets.some(s => s.weight !== null && s.weight !== '');
+
                         return (
-                            <Paper key={exercise.id} elevation={1} sx={{ mb: 2, p: 2 }}>
+                            <Paper
+                                key={exercise.id}
+                                elevation={0}
+                                variant="outlined"
+                                sx={{
+                                    mb: 2,
+                                    p: 2,
+                                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                                    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                                    '&:hover': {
+                                        borderColor: 'rgba(255, 255, 255, 0.2)',
+                                        backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                                    }
+                                }}
+                            >
                                 {/* Exercise Header */}
                                 <Box sx={{ display: 'flex', gap: 1, mb: 2, alignItems: 'center' }}>
                                     {/* Reorder buttons */}
@@ -446,6 +463,7 @@ function WorkoutModal({ isOpen, onClose, onSave, workout, initialDate, definitio
                                             onChange={(e) =>
                                                 handleExerciseChange(index, 'exerciseDefinitionId', e.target.value)
                                             }
+                                            disabled={hasEnteredData}
                                         >
                                             {availableForThisRow.map(def => (
                                                 <MenuItem key={def.id} value={def.id}>
@@ -474,6 +492,11 @@ function WorkoutModal({ isOpen, onClose, onSave, workout, initialDate, definitio
                                             alignItems: 'center',
                                             mb: 1,
                                             cursor: 'pointer',
+                                            p: 1,
+                                            borderRadius: 1,
+                                            '&:hover': {
+                                                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                                            }
                                         }}
                                         onClick={() => toggleExerciseCollapse(index)}
                                         role="button"
@@ -491,7 +514,13 @@ function WorkoutModal({ isOpen, onClose, onSave, workout, initialDate, definitio
                                             <Typography variant="subtitle2" fontWeight={600}>
                                                 Sets
                                             </Typography>
-                                            <Chip label={exercise.sets.length} size="small" />
+                                            <Chip
+                                                label={exercise.sets.length}
+                                                size="small"
+                                                color="primary"
+                                                variant="outlined"
+                                                sx={{ height: 20, minWidth: 20 }}
+                                            />
                                         </Box>
                                         {!isCollapsed && (
                                             <Button
@@ -517,11 +546,11 @@ function WorkoutModal({ isOpen, onClose, onSave, workout, initialDate, definitio
                                     </Box>
 
                                     <Collapse in={!isCollapsed}>
-                                        <Box sx={{ mt: 1 }}>
+                                        <Box sx={{ mt: 1, pl: 1, pr: 1 }}>
                                             {exercise.sets.map((set, setIndex) => (
                                                 <Grid container spacing={1} key={set.id} sx={{ mb: 1, alignItems: 'center' }}>
                                                     <Grid item xs={2}>
-                                                        <Chip label={`#${set.setNumber}`} size="small" sx={{ width: '100%' }} />
+                                                        <Chip label={`#${set.setNumber}`} size="small" sx={{ width: '100%', borderRadius: 1 }} />
                                                     </Grid>
                                                     <Grid item xs={4}>
                                                         <TextField
@@ -553,6 +582,10 @@ function WorkoutModal({ isOpen, onClose, onSave, workout, initialDate, definitio
                                                             onClick={() => handleRemoveSet(index, setIndex)}
                                                             disabled={exercise.sets.length === 1}
                                                             aria-label={`Remove set ${setIndex + 1} from ${exerciseName}`}
+                                                            sx={{
+                                                                opacity: exercise.sets.length === 1 ? 0.3 : 1,
+                                                                '&:hover': { backgroundColor: 'rgba(244, 67, 54, 0.1)' }
+                                                            }}
                                                         >
                                                             <DeleteIcon fontSize="small" />
                                                         </IconButton>
@@ -570,8 +603,9 @@ function WorkoutModal({ isOpen, onClose, onSave, workout, initialDate, definitio
                                     fullWidth
                                     value={exercise.notes || ''}
                                     onChange={(e) => handleExerciseChange(index, 'notes', e.target.value)}
-                                    sx={{ mt: 1 }}
+                                    sx={{ mt: 2 }}
                                     placeholder="Add notes for this exercise..."
+                                    variant="outlined"
                                 />
                             </Paper>
                         );
