@@ -19,11 +19,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY *.py .
 
-# Create uploads directory
-RUN mkdir -p /app/uploads
-
-# Create a non-root user to run the application
-RUN useradd -m -u 1000 -s /bin/bash appuser && \
+# Create uploads directory and non-root user
+RUN mkdir -p /app/uploads && \
+    useradd -m -u 1000 -s /bin/bash appuser && \
     chown -R appuser:appuser /app
 
 # Switch to non-root user

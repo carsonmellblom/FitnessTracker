@@ -15,7 +15,6 @@ import {
     TextField,
     MenuItem,
     Stack,
-    Divider,
     Paper
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
@@ -112,75 +111,95 @@ function Templates() {
             exercises: [
                 ...prev.exercises,
                 {
+                    id: crypto.randomUUID(), // Generated once when created
                     exerciseDefinitionId: definitions[0]?.id || 0,
                     notes: '',
-                    targetSets: [{ setNumber: 1, targetReps: 10, targetWeight: null }]
+                    targetSets: [{
+                        id: crypto.randomUUID(), // Generated once when created
+                        setNumber: 1,
+                        targetReps: 10,
+                        targetWeight: null
+                    }]
                 },
             ],
         }));
     };
 
-    const handleExerciseChange = (index, field, value) => {
+    const handleExerciseChange = (exerciseId, field, value) => {
         setFormData((prev) => ({
             ...prev,
-            exercises: prev.exercises.map((ex, i) =>
-                i === index ? { ...ex, [field]: value } : ex
+            exercises: prev.exercises.map((exercise) =>
+                exercise.id === exerciseId ? { ...exercise, [field]: value } : exercise
             ),
         }));
     };
 
-    const handleAddSet = (exerciseIndex) => {
-        setFormData((prev) => {
-            const newExercises = [...prev.exercises];
-            const exercise = { ...newExercises[exerciseIndex] };
-            const sets = [...exercise.targetSets];
-            const lastSet = sets[sets.length - 1];
-
-            sets.push({
-                setNumber: sets.length + 1,
-                targetReps: lastSet?.targetReps || 10,
-                targetWeight: lastSet?.targetWeight || null,
-            });
-
-            exercise.targetSets = sets;
-            newExercises[exerciseIndex] = exercise;
-            return { ...prev, exercises: newExercises };
-        });
-    };
-
-    const handleSetChange = (exerciseIndex, setIndex, field, value) => {
-        setFormData((prev) => {
-            const newExercises = [...prev.exercises];
-            const exercise = { ...newExercises[exerciseIndex] };
-            const sets = [...exercise.targetSets];
-
-            sets[setIndex] = {
-                ...sets[setIndex],
-                [field]: value === '' ? null : (field === 'targetWeight' ? parseFloat(value) : parseInt(value)),
-            };
-
-            exercise.targetSets = sets;
-            newExercises[exerciseIndex] = exercise;
-            return { ...prev, exercises: newExercises };
-        });
-    };
-
-    const handleRemoveSet = (exerciseIndex, setIndex) => {
-        setFormData((prev) => {
-            const newExercises = [...prev.exercises];
-            const exercise = { ...newExercises[exerciseIndex] };
-            exercise.targetSets = exercise.targetSets
-                .filter((_, i) => i !== setIndex)
-                .map((s, i) => ({ ...s, setNumber: i + 1 }));
-            newExercises[exerciseIndex] = exercise;
-            return { ...prev, exercises: newExercises };
-        });
-    };
-
-    const handleRemoveExercise = (index) => {
+    const handleAddSet = (exerciseId) => {
         setFormData((prev) => ({
             ...prev,
-            exercises: prev.exercises.filter((_, i) => i !== index),
+            exercises: prev.exercises.map((exercise) => {
+                if (exercise.id !== exerciseId) return exercise;
+
+                const sets = exercise.targetSets || [];
+                const lastSet = sets[sets.length - 1];
+
+                return {
+                    ...exercise,
+                    targetSets: [
+                        ...sets,
+                        {
+                            id: crypto.randomUUID(), // Generated once when created
+                            setNumber: sets.length + 1,
+                            targetReps: lastSet?.targetReps || 10,
+                            targetWeight: lastSet?.targetWeight || null,
+                        }
+                    ]
+                };
+            })
+        }));
+    };
+
+    const handleSetChange = (exerciseId, setId, field, value) => {
+        setFormData((prev) => ({
+            ...prev,
+            exercises: prev.exercises.map((exercise) => {
+                if (exercise.id !== exerciseId) return exercise;
+
+                return {
+                    ...exercise,
+                    targetSets: exercise.targetSets.map((set) =>
+                        set.id === setId
+                            ? {
+                                ...set,
+                                [field]: value === '' ? null : (field === 'targetWeight' ? parseFloat(value) : parseInt(value)),
+                            }
+                            : set
+                    )
+                };
+            })
+        }));
+    };
+
+    const handleRemoveSet = (exerciseId, setId) => {
+        setFormData((prev) => ({
+            ...prev,
+            exercises: prev.exercises.map((exercise) => {
+                if (exercise.id !== exerciseId) return exercise;
+
+                return {
+                    ...exercise,
+                    targetSets: exercise.targetSets
+                        .filter((set) => set.id !== setId)
+                        .map((s, i) => ({ ...s, setNumber: i + 1 }))
+                };
+            })
+        }));
+    };
+
+    const handleRemoveExercise = (exerciseId) => {
+        setFormData((prev) => ({
+            ...prev,
+            exercises: prev.exercises.filter((ex) => ex.id !== exerciseId),
         }));
     };
 
@@ -534,19 +553,19 @@ function Templates() {
                                 </Box>
 
                                 <Stack spacing={2}>
-                                    {formData.exercises.map((exercise, index) => (
+                                    {formData.exercises.map((exercise) => (
                                         <Paper
-                                            key={index}
+                                            key={exercise.id}
                                             sx={{ p: 2, bgcolor: 'action.hover' }}
                                             component="section"
-                                            aria-label={`Exercise ${index + 1}`}
+                                            aria-label={`Exercise ${exercise.exerciseName}`}
                                         >
                                             {/* Exercise Selection and Remove */}
                                             <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
                                                 <TextField
                                                     select
                                                     value={exercise.exerciseDefinitionId}
-                                                    onChange={(e) => handleExerciseChange(index, 'exerciseDefinitionId', e.target.value)}
+                                                    onChange={(e) => handleExerciseChange(exercise.id, 'exerciseDefinitionId', e.target.value)}
                                                     required
                                                     fullWidth
                                                     label="Exercise"
@@ -560,8 +579,8 @@ function Templates() {
                                                 </TextField>
                                                 <IconButton
                                                     color="error"
-                                                    onClick={() => handleRemoveExercise(index)}
-                                                    aria-label={`Remove exercise ${index + 1}`}
+                                                    onClick={() => handleRemoveExercise(exercise.id)}
+                                                    aria-label="Remove exercise"
                                                     size="small"
                                                 >
                                                     <CloseIcon />
@@ -576,16 +595,16 @@ function Templates() {
                                                     </Typography>
                                                     <Button
                                                         size="small"
-                                                        onClick={() => handleAddSet(index)}
+                                                        onClick={() => handleAddSet(exercise.id)}
                                                         aria-label="Add set"
                                                     >
                                                         + Add Set
                                                     </Button>
                                                 </Box>
                                                 <Stack spacing={1}>
-                                                    {exercise.targetSets?.map((set, setIndex) => (
+                                                    {exercise.targetSets?.map((set) => (
                                                         <Stack
-                                                            key={setIndex}
+                                                            key={set.id}
                                                             direction="row"
                                                             spacing={1}
                                                             alignItems="center"
@@ -604,7 +623,7 @@ function Templates() {
                                                                 type="number"
                                                                 placeholder="Target Reps"
                                                                 value={set.targetReps || ''}
-                                                                onChange={(e) => handleSetChange(index, setIndex, 'targetReps', e.target.value)}
+                                                                onChange={(e) => handleSetChange(exercise.id, set.id, 'targetReps', e.target.value)}
                                                                 required
                                                                 size="small"
                                                                 sx={{ flex: 1 }}
@@ -615,7 +634,7 @@ function Templates() {
                                                                 step="0.5"
                                                                 placeholder="Target lbs"
                                                                 value={set.targetWeight === null ? '' : set.targetWeight}
-                                                                onChange={(e) => handleSetChange(index, setIndex, 'targetWeight', e.target.value)}
+                                                                onChange={(e) => handleSetChange(exercise.id, set.id, 'targetWeight', e.target.value)}
                                                                 size="small"
                                                                 sx={{ flex: 1 }}
                                                                 inputProps={{ 'aria-label': `Set ${set.setNumber} target weight` }}
@@ -623,7 +642,7 @@ function Templates() {
                                                             <IconButton
                                                                 color="error"
                                                                 size="small"
-                                                                onClick={() => handleRemoveSet(index, setIndex)}
+                                                                onClick={() => handleRemoveSet(exercise.id, set.id)}
                                                                 disabled={exercise.targetSets.length === 1}
                                                                 aria-label={`Remove set ${set.setNumber}`}
                                                             >

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import {
     Box,
-    Container,
     Typography,
     Button,
     Tabs,
@@ -50,6 +50,12 @@ function TabPanel({ children, value, index, ...other }) {
         </div>
     );
 }
+
+TabPanel.propTypes = {
+    children: PropTypes.node,
+    value: PropTypes.number.isRequired,
+    index: PropTypes.number.isRequired,
+};
 
 // Accessibility props for tabs
 function a11yProps(index) {

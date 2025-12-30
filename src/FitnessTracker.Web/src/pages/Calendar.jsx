@@ -38,6 +38,24 @@ import {
 import { workoutsApi, exerciseDefinitionsApi, templatesApi } from '../services/api';
 import WorkoutModal from '../components/WorkoutModal';
 
+// Helper function to get background color for calendar day
+const getDayBackgroundColor = (day, isTodayDate) => {
+    if (!day) return 'transparent';
+    return isTodayDate ? 'primary.dark' : 'background.paper';
+};
+
+// Helper function to get hover background color
+const getHoverBackgroundColor = (isTodayDate) => {
+    return isTodayDate ? 'primary.dark' : 'action.hover';
+};
+
+// Helper function to format workout count for aria-label
+const getWorkoutAriaLabel = (dayWorkouts) => {
+    if (dayWorkouts.length === 0) return ', no workouts';
+    const count = dayWorkouts.length;
+    return `, ${count} workout${count === 1 ? '' : 's'}`;
+};
+
 function Calendar() {
     const navigate = useNavigate();
     const [workouts, setWorkouts] = useState([]);
@@ -387,19 +405,19 @@ function Calendar() {
                                         minHeight: 100,
                                         p: 1,
                                         cursor: day ? 'pointer' : 'default',
-                                        backgroundColor: day ? (isTodayDate ? 'primary.dark' : 'background.paper') : 'transparent',
+                                        backgroundColor: getDayBackgroundColor(day, isTodayDate),
                                         border: isTodayDate ? 2 : 1,
                                         borderColor: isTodayDate ? 'primary.main' : 'divider',
                                         transition: 'all 0.2s',
                                         '&:hover': day ? {
-                                            backgroundColor: isTodayDate ? 'primary.dark' : 'action.hover',
+                                            backgroundColor: getHoverBackgroundColor(isTodayDate),
                                             transform: 'translateY(-2px)',
                                             boxShadow: 3,
                                         } : {},
                                     }}
                                     onClick={() => handleDayClick(day)}
                                     role="gridcell"
-                                    aria-label={day ? `${monthNames[month]} ${day}, ${year}${hasWorkout ? `, ${dayWorkouts.length} workout${dayWorkouts.length > 1 ? 's' : ''}` : ', no workouts'}` : 'Empty'}
+                                    aria-label={day ? `${monthNames[month]} ${day}, ${year}${getWorkoutAriaLabel(dayWorkouts)}` : 'Empty'}
                                     tabIndex={day ? 0 : -1}
                                     onKeyDown={(e) => {
                                         if (day && (e.key === 'Enter' || e.key === ' ')) {

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import {
     Dialog,
     DialogTitle,
@@ -14,12 +15,8 @@ import {
     Box,
     Typography,
     Paper,
-    Accordion,
-    AccordionSummary,
-    AccordionDetails,
     Grid,
     Chip,
-    Divider,
     Collapse,
     Alert,
 } from '@mui/material';
@@ -72,7 +69,11 @@ function WorkoutModal({ isOpen, onClose, onSave, workout, initialDate, definitio
             // Editing existing workout
             const exercises = workout.exercises.map(ex => ({
                 ...ex,
-                sets: ex.sets.map(s => ({ ...s }))
+                id: ex.id || crypto.randomUUID(), // Ensure ID exists
+                sets: ex.sets.map(s => ({
+                    ...s,
+                    id: s.id || crypto.randomUUID() // Ensure ID exists
+                }))
             })) || [];
             setFormData({
                 title: workout.title,
@@ -91,7 +92,17 @@ function WorkoutModal({ isOpen, onClose, onSave, workout, initialDate, definitio
                 description: templateData.description || '',
                 durationMinutes: templateData.durationMinutes || 30,
                 workoutDate: initialDate || new Date().toISOString().split('T')[0],
-                exercises: templateData.exercises || [],
+                exercises: templateData.exercises.map(ex => ({
+                    ...ex,
+                    id: ex.id || crypto.randomUUID(), // Ensure ID exists
+                    sets: (ex.targetSets || ex.sets || []).map(s => ({
+                        ...s,
+                        id: s.id || crypto.randomUUID(), // Ensure ID exists
+                        setNumber: s.setNumber,
+                        reps: s.targetReps || s.reps || 10,
+                        weight: s.targetWeight || s.weight || null,
+                    }))
+                })) || [],
             });
             // Start with all exercises expanded for better keyboard navigation
             setCollapsedExercises(new Set());
@@ -131,9 +142,15 @@ function WorkoutModal({ isOpen, onClose, onSave, workout, initialDate, definitio
             exercises: [
                 ...prev.exercises,
                 {
+                    id: crypto.randomUUID(), // Generated once when created
                     exerciseDefinitionId: unusedDefs[0].id,
                     notes: '',
-                    sets: [{ setNumber: 1, reps: 10, weight: null }]
+                    sets: [{
+                        id: crypto.randomUUID(), // Generated once when created
+                        setNumber: 1,
+                        reps: 10,
+                        weight: null
+                    }]
                 },
             ],
         }));
@@ -162,6 +179,7 @@ function WorkoutModal({ isOpen, onClose, onSave, workout, initialDate, definitio
             const lastSet = sets[sets.length - 1];
 
             sets.push({
+                id: crypto.randomUUID(), // Generated once when created
                 setNumber: sets.length + 1,
                 reps: lastSet?.reps || 10,
                 weight: lastSet?.weight || null,
@@ -395,7 +413,7 @@ function WorkoutModal({ isOpen, onClose, onSave, workout, initialDate, definitio
                         const exerciseName = definitions.find(d => d.id == exercise.exerciseDefinitionId)?.name || 'Exercise';
 
                         return (
-                            <Paper key={index} elevation={1} sx={{ mb: 2, p: 2 }}>
+                            <Paper key={exercise.id} elevation={1} sx={{ mb: 2, p: 2 }}>
                                 {/* Exercise Header */}
                                 <Box sx={{ display: 'flex', gap: 1, mb: 2, alignItems: 'center' }}>
                                     {/* Reorder buttons */}
@@ -501,7 +519,7 @@ function WorkoutModal({ isOpen, onClose, onSave, workout, initialDate, definitio
                                     <Collapse in={!isCollapsed}>
                                         <Box sx={{ mt: 1 }}>
                                             {exercise.sets.map((set, setIndex) => (
-                                                <Grid container spacing={1} key={setIndex} sx={{ mb: 1, alignItems: 'center' }}>
+                                                <Grid container spacing={1} key={set.id} sx={{ mb: 1, alignItems: 'center' }}>
                                                     <Grid item xs={2}>
                                                         <Chip label={`#${set.setNumber}`} size="small" sx={{ width: '100%' }} />
                                                     </Grid>
@@ -601,5 +619,19 @@ function WorkoutModal({ isOpen, onClose, onSave, workout, initialDate, definitio
         </Dialog>
     );
 }
+
+WorkoutModal.propTypes = {
+    isOpen: PropTypes.bool.isRequired,
+    onClose: PropTypes.func.isRequired,
+    onSave: PropTypes.func,
+    workout: PropTypes.object,
+    initialDate: PropTypes.string,
+    definitions: PropTypes.arrayOf(PropTypes.shape({
+        id: PropTypes.number.isRequired,
+        name: PropTypes.string.isRequired,
+        primaryMuscleGroup: PropTypes.string,
+    })).isRequired,
+    templateData: PropTypes.object,
+};
 
 export default WorkoutModal;

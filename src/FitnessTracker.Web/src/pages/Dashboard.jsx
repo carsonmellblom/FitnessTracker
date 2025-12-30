@@ -10,7 +10,6 @@ import {
     CardMedia,
     CardHeader,
     Button,
-    Chip,
     CircularProgress,
     Paper,
     List,
