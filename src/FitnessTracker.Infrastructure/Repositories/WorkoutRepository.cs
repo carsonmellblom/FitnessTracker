@@ -66,6 +66,7 @@ public class WorkoutRepository : IWorkoutRepository
             // Update scalar properties
             existingWorkout.Description = workout.Description;
             existingWorkout.WorkoutDate = workout.WorkoutDate;
+            existingWorkout.DurationMinutes = workout.DurationMinutes;
 
             // Delete existing exercises using EF Core's bulk delete (EF Core 7+)
             await _context.Exercises

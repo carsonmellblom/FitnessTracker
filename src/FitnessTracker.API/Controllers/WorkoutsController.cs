@@ -102,7 +102,7 @@ public class WorkoutsController : ControllerBase
             UserId = userId,
             Title = "",  // No title needed - date is displayed in UI
             Description = request.Description,
-            DurationMinutes = 0,  // Duration not tracked for individual workouts
+            DurationMinutes = request.DurationMinutes,
             WorkoutDate = workoutDate,
             Exercises = request.Exercises.Select(e =>
             {
@@ -161,7 +161,7 @@ public class WorkoutsController : ControllerBase
             UserId = existing.UserId,
             Title = "",  // No title needed - date is displayed in UI
             Description = request.Description,
-            DurationMinutes = 0,  // Duration not tracked for individual workouts
+            DurationMinutes = request.DurationMinutes,
             WorkoutDate = workoutDate,
             CreatedAt = existing.CreatedAt,
             Exercises = request.Exercises.Select(e =>
