@@ -19,6 +19,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY *.py .
 
+# Pre-download MediaPipe models (running as root)
+RUN python download_model.py
+
 # Create uploads directory and non-root user
 RUN mkdir -p /app/uploads && \
     useradd -m -u 1000 -s /bin/bash appuser && \

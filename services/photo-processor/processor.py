@@ -565,6 +565,8 @@ def classify_bodybuilding_pose(landmarks: list, facing_camera: bool) -> str:
     right_elbow = landmarks[14]
     left_wrist = landmarks[15]
     right_wrist = landmarks[16]
+    left_hip = landmarks[23]
+    right_hip = landmarks[24]
     
     print(f"  POSE CLASSIFICATION - facing_camera={facing_camera}", flush=True)
     
@@ -577,10 +579,36 @@ def classify_bodybuilding_pose(landmarks: list, facing_camera: bool) -> str:
     right_arm_raised = right_wrist['y'] < right_shoulder['y']
     
     # Check if elbows are bent (angle < 120 degrees)
+    # Check if elbows are bent (angle < 120 degrees)
     left_elbow_bent = left_arm_angle < 120
     right_elbow_bent = right_arm_angle < 120
+
+    # Check for body rotation (Side poses)
+    # If shoulders have significant Z-depth difference or visibility difference
+    shoulder_z_diff = abs(left_shoulder['z'] - right_shoulder['z'])
+    is_side_turn = shoulder_z_diff > 0.15 or abs(left_shoulder['visibility'] - right_shoulder['visibility']) > 0.3
+    
+    # Check for front-facing hips (Most Muscular requirement)
+    # Both hips should be visible and roughly aligned in Z
+    hips_visible = left_hip['visibility'] > 0.6 and right_hip['visibility'] > 0.6
+    hips_aligned = abs(left_hip['z'] - right_hip['z']) < 0.15
+    is_facing_front_body = hips_visible and hips_aligned
+
+    # Symmetry Check (Most Muscular is symmetric, Selfie Side Chest is not)
+    # Check vertical distance between wrists
+    wrist_y_diff = abs(left_wrist['y'] - right_wrist['y'])
+    is_symmetric_arms = wrist_y_diff < 0.15
+    
+    # "Hands Clasped" / "Crab" Most Muscular Check
+    # Wrists close together in X
+    is_hands_clasped = abs(left_wrist['x'] - right_wrist['x']) < 0.15
     
     # Classification logic
+    
+    # Special Case: Crab Most Muscular (Hands clasped + elbows bent)
+    # This often involves hunching which might obscure hips, so we skip the hip checks
+    if is_hands_clasped and left_elbow_bent and right_elbow_bent and is_symmetric_arms:
+        return "Most Muscular"
     
     # Double Biceps: Both arms raised and bent
     if left_arm_raised and right_arm_raised and left_elbow_bent and right_elbow_bent:
@@ -596,17 +624,25 @@ def classify_bodybuilding_pose(landmarks: list, facing_camera: bool) -> str:
         else:
             return "Rear Lat Spread"
     
-    # Side poses: One arm bent, one straight
+    # Side Chest: Significant side turn + one arm bent/flexed
+    # One arm might be holding a phone (not fully visible or weird angle), but the "posing" arm is bent
+    # Also capture asymmetric "selfie" poses that are side-turned
+    elif (is_side_turn or not is_symmetric_arms) and (left_elbow_bent or right_elbow_bent):
+         return "Side Chest"
+         
+    # Must precede legacy side chest to catch the specific selfie case where is_side_turn is weak but asymmetry is high
+    
+    # Side poses legacy fallback: One arm bent, one straight
     elif (left_elbow_bent and not right_elbow_bent) or (right_elbow_bent and not left_elbow_bent):
         return "Side Chest"
     
-    # Most Muscular: Both arms tightly contracted in front
-    elif left_arm_angle < 90 and right_arm_angle < 90 and facing_camera:
+    # Most Muscular: Both arms tightly contracted in front AND facing front body
+    # STRICTER: Must be symmetric (hands roughly level)
+    elif left_arm_angle < 100 and right_arm_angle < 100 and facing_camera and is_facing_front_body and is_symmetric_arms:
         return "Most Muscular"
     
-    # Hands Clasped: Wrists close together
-    elif abs(left_wrist['x'] - right_wrist['x']) < 0.1:
-        # Wrists close together in front
+    # Fallback to Hands Clasped if only wrists are close but arms not bent enough (e.g. at waist)
+    elif is_hands_clasped:
         return "Hands Clasped"
     
     else:
