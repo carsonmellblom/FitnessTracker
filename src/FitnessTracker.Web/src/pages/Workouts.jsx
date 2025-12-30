@@ -4,7 +4,6 @@ import {
     Typography,
     Card,
     CardContent,
-    CardActions,
     Button,
     IconButton,
     Grid,
@@ -14,7 +13,6 @@ import {
     DialogContent,
     DialogContentText,
     DialogActions,
-    Chip,
     Stack,
     Divider
 } from '@mui/material';
@@ -340,9 +338,9 @@ function Workouts() {
                                                             }}
                                                             aria-label={`Sets for ${exercise.exerciseName}`}
                                                         >
-                                                            {exercise.sets.map((set, idx) => (
+                                                            {exercise.sets.map((set) => (
                                                                 <Box
-                                                                    key={idx}
+                                                                    key={set.id}
                                                                     component="li"
                                                                     sx={{
                                                                         display: 'flex',
