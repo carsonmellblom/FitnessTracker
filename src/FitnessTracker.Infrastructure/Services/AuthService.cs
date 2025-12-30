@@ -129,7 +129,7 @@ public class AuthService : IAuthService
     /// <summary>
     /// Validates if the provided refresh token matches the user's stored token and is not expired.
     /// </summary>
-    private bool IsRefreshTokenValid(ApplicationUser user, string refreshToken)
+    private static bool IsRefreshTokenValid(ApplicationUser user, string refreshToken)
     {
         if (user.RefreshToken != refreshToken)
         {
