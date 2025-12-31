@@ -26,7 +26,14 @@ jobs:
           lfs: false
 
       - name: Create .env.production file
-        run: echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" > src/FitnessTracker.Web/.env.production
+        env:
+          API_URL: ${{ secrets.VITE_API_URL }}
+        run: |
+          if [ -z "$API_URL" ]; then
+            echo "::error::VITE_API_URL secret is empty or missing!"
+            exit 1
+          fi
+          echo "VITE_API_URL=$API_URL" > src/FitnessTracker.Web/.env.production
 
       # Step to build and deploy to Azure Static Web Apps
       # The secrets will be provided by Azure after creating the resource
