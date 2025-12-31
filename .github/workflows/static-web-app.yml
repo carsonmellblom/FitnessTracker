@@ -40,6 +40,8 @@ jobs:
           output_location: "dist" # Built app content directory - optional
           ###### End of Repository/Build Configurations ######
           app_build_command: "npm install && npm run build"
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
