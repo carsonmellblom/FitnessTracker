@@ -26,7 +26,7 @@ jobs:
           lfs: false
 
           ###### End of Repository/Build Configurations ######
-          app_build_command: "npm install && export VITE_API_URL=${{ secrets.VITE_API_URL }} && npm run build"
+          app_build_command: "npm install && npm run build"
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
