@@ -15,11 +15,7 @@ using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Explicitly set URLs if not already configured
-if (!builder.Configuration["Urls"]?.Contains("localhost") ?? true)
-{
-    builder.WebHost.UseUrls("http://localhost:5067");
-}
+// No manual URL configuration needed - allows default container ports (8080) to work
 
 // Add services to the container.
 builder.Services.AddControllers();
