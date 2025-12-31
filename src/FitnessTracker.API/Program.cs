@@ -153,6 +153,22 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+else
+{
+    // Production Security Headers
+    app.UseHsts();
+}
+
+// Add Security Headers Middleware
+app.Use(async (context, next) =>
+{
+    context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+    context.Response.Headers.Append("X-Frame-Options", "DENY");
+    context.Response.Headers.Append("Content-Security-Policy", "default-src 'self'; img-src 'self' data: https:;"); // Allow images from self, data (base64), and https sources
+    context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
+    context.Response.Headers.Append("Permissions-Policy", "camera=(), microphone=(), geolocation=()"); // Disable unused features
+    await next();
+});
 
 app.UseRateLimiter(); // Use Rate Limiter middleware
 app.UseCors("AllowReactApp");
