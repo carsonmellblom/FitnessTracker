@@ -71,12 +71,29 @@ public class AuthService : IAuthService
             return CreateErrorResult(InvalidCredentialsError);
         }
 
+        // Check if user is locked out
+        if (await _userManager.IsLockedOutAsync(user))
+        {
+            return CreateErrorResult("Account is locked out. Please try again later.");
+        }
+
         var isPasswordValid = await _userManager.CheckPasswordAsync(user, password);
 
         if (!isPasswordValid)
         {
+            // Increment failed access count
+            await _userManager.AccessFailedAsync(user);
+
+            if (await _userManager.IsLockedOutAsync(user))
+            {
+                return CreateErrorResult("Account is locked out. Please try again later.");
+            }
+
             return CreateErrorResult(InvalidCredentialsError);
         }
+
+        // Reset failed count on successful login
+        await _userManager.ResetAccessFailedCountAsync(user);
 
         return await GenerateAuthResponseAsync(user);
     }
