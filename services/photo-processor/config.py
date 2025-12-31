@@ -20,3 +20,8 @@ DB_PASSWORD = os.getenv('DB_PASSWORD', '')
 # Photo Processing Configuration
 THUMBNAIL_SIZE = (300, 300)
 UPLOADS_PATH = os.getenv('UPLOADS_PATH', '/app/uploads')
+
+# Azure Storage Configuration
+AZURE_STORAGE_CONNECTION_STRING = os.getenv('AZURE_STORAGE_CONNECTION_STRING', '')
+AZURE_STORAGE_CONTAINER_NAME = os.getenv('AZURE_STORAGE_CONTAINER_NAME', 'progress-photos')
+USE_BLOB_STORAGE = bool(AZURE_STORAGE_CONNECTION_STRING)
