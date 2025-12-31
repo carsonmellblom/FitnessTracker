@@ -54,6 +54,62 @@ public class PhotosController : ControllerBase
         return Ok(MapToDto(photo));
     }
 
+    [HttpGet("{id}/image")]
+    public async Task<IActionResult> GetPhotoImage(int id, [FromQuery] string? type = null)
+    {
+        var photo = await _photoRepository.GetByIdAsync(id);
+        if (photo == null)
+        {
+            return NotFound();
+        }
+
+        // CRITICAL: Verify ownership
+        var userId = GetUserId();
+        if (photo.UserId != userId)
+        {
+            _logger.LogWarning("User {UserId} attempted to access photo {PhotoId} owned by {OwnerId}",
+                userId, id, photo.UserId);
+            return Forbid();
+        }
+
+        // Determine which image file to serve
+        string? fileName = type?.ToLower() switch
+        {
+            "thumbnail" => photo.ThumbnailPath ?? photo.ImagePath,
+            "cropped" => photo.CroppedImagePath ?? photo.ImagePath,
+            _ => photo.ImagePath
+        };
+
+        if (string.IsNullOrEmpty(fileName))
+        {
+            return NotFound("No image available for this photo");
+        }
+
+        try
+        {
+            // Extract just the filename (database may store with path prefix like /uploads/file.jpg)
+            var fileNameOnly = Path.GetFileName(fileName);
+
+            // Download from storage and stream to client
+            var stream = await _fileStorage.GetFileAsync(fileNameOnly);
+
+            // Set caching headers for browser caching (24 hours)
+            Response.Headers.Append("Cache-Control", "private, max-age=86400");
+
+            return File(stream, "image/jpeg");
+        }
+        catch (FileNotFoundException)
+        {
+            _logger.LogError("Photo {PhotoId} file not found in storage: {FileName}", id, fileName);
+            return NotFound("Image file not found in storage");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error streaming photo {PhotoId} from storage", id);
+            return StatusCode(500, "Error retrieving image");
+        }
+    }
+
     [HttpPost]
     public async Task<ActionResult<PhotoDto>> UploadPhoto(IFormFile file)
     {
@@ -138,9 +194,9 @@ public class PhotosController : ControllerBase
     {
         Id = photo.Id,
         OriginalFileName = photo.OriginalFileName,
-        ImageUrl = !string.IsNullOrEmpty(photo.ImagePath) ? _fileStorage.GetFileUrl(photo.ImagePath) : string.Empty,
-        ThumbnailUrl = !string.IsNullOrEmpty(photo.ThumbnailPath) ? _fileStorage.GetFileUrl(photo.ThumbnailPath) : null,
-        CroppedImageUrl = !string.IsNullOrEmpty(photo.CroppedImagePath) ? _fileStorage.GetFileUrl(photo.CroppedImagePath) : null,
+        ImageUrl = null, // Frontend constructs: /api/v1/photos/{id}/image
+        ThumbnailUrl = null, // Frontend constructs: /api/v1/photos/{id}/image?type=thumbnail
+        CroppedImageUrl = null, // Frontend constructs: /api/v1/photos/{id}/image?type=cropped
         ProcessingStatus = photo.ProcessingStatus.ToString(),
         ProcessingError = photo.ProcessingError,
         BodyAnalysis = photo.BodyAnalysisJson,
@@ -176,7 +232,7 @@ public record PhotoDto
 {
     public int Id { get; init; }
     public string OriginalFileName { get; init; } = string.Empty;
-    public string ImageUrl { get; init; } = string.Empty;
+    public string? ImageUrl { get; init; }
     public string? ThumbnailUrl { get; init; }
     public string? CroppedImageUrl { get; init; }
     public string ProcessingStatus { get; init; } = string.Empty;
