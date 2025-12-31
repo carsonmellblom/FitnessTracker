@@ -24,7 +24,10 @@ jobs:
         with:
           submodules: true
           lfs: false
-      
+
+      - name: Create .env file
+        run: echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" > src/FitnessTracker.Web/.env
+
       # Step to build and deploy to Azure Static Web Apps
       # The secrets will be provided by Azure after creating the resource
       - name: Build and Deploy
@@ -40,8 +43,6 @@ jobs:
           output_location: "dist" # Built app content directory - optional
           ###### End of Repository/Build Configurations ######
           app_build_command: "npm install && npm run build"
-        env:
-          VITE_API_URL: ${{ secrets.VITE_API_URL }}
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
