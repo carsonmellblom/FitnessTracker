@@ -528,16 +528,17 @@ function Photos() {
                                             }}
                                             sx={{
                                                 width: '100%',
-                                                aspectRatio: '3/4',
+                                                height: 300,
                                                 objectFit: 'cover',
                                                 display: 'block',
-                                                borderRadius: 1
+                                                borderRadius: 1,
+                                                bgcolor: 'action.hover'
                                             }}
                                         />
                                         <Box
                                             sx={{
                                                 width: '100%',
-                                                aspectRatio: '3/4',
+                                                height: 300,
                                                 display: 'none',
                                                 flexDirection: 'column',
                                                 alignItems: 'center',
