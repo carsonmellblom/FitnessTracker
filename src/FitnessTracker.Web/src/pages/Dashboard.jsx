@@ -19,7 +19,7 @@ import {
 } from '@mui/material';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import CameraAltIcon from '@mui/icons-material/CameraAlt';
-import { workoutsApi, photosApi } from '../services/api';
+import { workoutsApi, photosApi, getImageUrl } from '../services/api';
 
 function Dashboard() {
     const [stats, setStats] = useState({
@@ -406,7 +406,7 @@ function Dashboard() {
                                                             <CardMedia
                                                                 component="img"
                                                                 height="150"
-                                                                image={`http://localhost:5067${photo.thumbnailUrl || photo.imageUrl}`}
+                                                                image={getImageUrl(photo.thumbnailUrl || photo.imageUrl)}
                                                                 alt={altText}
                                                                 title={altText}
                                                                 sx={{ objectFit: 'cover' }}
