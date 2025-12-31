@@ -1,4 +1,7 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5067/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+if (!API_BASE_URL) {
+    console.error('VITE_API_URL is missing!');
+}
 
 // Helper to include credentials (cookies) in all requests
 const fetchWithAuth = (url, options = {}) => {

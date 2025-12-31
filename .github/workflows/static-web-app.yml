@@ -25,8 +25,8 @@ jobs:
           submodules: true
           lfs: false
 
-      - name: Create .env file
-        run: echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" > src/FitnessTracker.Web/.env
+      - name: Create .env.production file
+        run: echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" > src/FitnessTracker.Web/.env.production
 
       # Step to build and deploy to Azure Static Web Apps
       # The secrets will be provided by Azure after creating the resource
