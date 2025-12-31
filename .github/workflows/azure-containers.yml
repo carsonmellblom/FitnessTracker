@@ -49,7 +49,6 @@ jobs:
     - name: Deploy API to Azure Container Apps
       uses: azure/container-apps-deploy-action@v1
       with:
-        appSourcePath: ${{ github.workspace }} 
         acrName: ${{ secrets.ACR_NAME }} # e.g., fitnesstrackeracr
         containerAppName: fitness-api
         resourceGroup: ${{ secrets.AZURE_RESOURCE_GROUP }}
@@ -59,7 +58,6 @@ jobs:
     - name: Deploy Photo Processor to Azure Container Apps
       uses: azure/container-apps-deploy-action@v1
       with:
-        appSourcePath: ${{ github.workspace }}
         acrName: ${{ secrets.ACR_NAME }}
         containerAppName: fitness-photo-processor
         resourceGroup: ${{ secrets.AZURE_RESOURCE_GROUP }}
