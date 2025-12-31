@@ -1,0 +1,66 @@
+name: Azure Container Apps Build & Deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/FitnessTracker.API/**'
+      - 'src/FitnessTracker.Core/**'
+      - 'src/FitnessTracker.Infrastructure/**'
+      - 'services/photo-processor/**'
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    # Login to Azure (Required for deployment)
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    # Login to Azure Container Registry
+    # Secrets need to be configured in GitHub repo settings
+    - name: Azure Container Registry Login
+      uses: azure/docker-login@v1
+      with:
+        login-server: ${{ secrets.ACR_LOGIN_SERVER }}
+        username: ${{ secrets.ACR_USERNAME }}
+        password: ${{ secrets.ACR_PASSWORD }}
+
+    # Build and Push Backend API
+    - name: Build and Push API Image
+      run: |
+        docker build . -f src/FitnessTracker.API/Dockerfile -t ${{ secrets.ACR_LOGIN_SERVER }}/fitness-tracker-api:${{ github.sha }}
+        docker push ${{ secrets.ACR_LOGIN_SERVER }}/fitness-tracker-api:${{ github.sha }}
+    
+    # Build and Push Photo Processor
+    - name: Build and Push Photo Processor Image
+      run: |
+        docker build ./services/photo-processor -f services/photo-processor/Dockerfile -t ${{ secrets.ACR_LOGIN_SERVER }}/photo-processor:${{ github.sha }}
+        docker push ${{ secrets.ACR_LOGIN_SERVER }}/photo-processor:${{ github.sha }}
+
+    # Deploy API to Azure Container Apps
+    - name: Deploy API to Azure Container Apps
+      uses: azure/container-apps-deploy-action@v1
+      with:
+        appSourcePath: ${{ github.workspace }} 
+        acrName: ${{ secrets.ACR_NAME }} # e.g., fitnesstrackeracr
+        containerAppName: fitness-api
+        resourceGroup: ${{ secrets.AZURE_RESOURCE_GROUP }}
+        imageToDeploy: ${{ secrets.ACR_LOGIN_SERVER }}/fitness-tracker-api:${{ github.sha }}
+
+    # Deploy Photo Processor to Azure Container Apps
+    - name: Deploy Photo Processor to Azure Container Apps
+      uses: azure/container-apps-deploy-action@v1
+      with:
+        appSourcePath: ${{ github.workspace }}
+        acrName: ${{ secrets.ACR_NAME }}
+        containerAppName: fitness-photo-processor
+        resourceGroup: ${{ secrets.AZURE_RESOURCE_GROUP }}
+        imageToDeploy: ${{ secrets.ACR_LOGIN_SERVER }}/photo-processor:${{ github.sha }}
