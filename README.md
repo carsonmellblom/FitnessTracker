@@ -1,288 +1,317 @@
-# FitnessTracker
+# FitnessTracker - Azure Deployment Guide
 
-This is an example project I have created 
+> A comprehensive fitness tracking application with progress photo analysis, built with .NET 10, React, Python, and Azure services.
 
-This code is not production ready 
+## 🏗️ Architecture
 
-Description:
-
-Fitness Tracking web application utilizing a microservices architecture with ASP.NET Core 8, React, and PostgreSQL. Implemented secure user authentication using JWT with ASP.NET Identity and httpOnly cookies, including resource-level authorization filters to enforce data isolation. 
-
-Built a Python-based microservice leveraging Google MediaPipe for AI-powered bodybuilding pose detection and automated progress photo analysis, including auto-cropping and landmark visualization. 
-
-Architected a scalable backend with Entity Framework Core and repository pattern, featuring workout logging with automatic personal record tracking, customizable exercise libraries, reusable workout templates, and a calendar-based interface. Integrated RabbitMQ for asynchronous photo processing and implemented Docker containerization for the ML microservice. 
-
-Technologies: C#, .NET Core, React, PostgreSQL, Python, MediaPipe, RabbitMQ, Docker, Entity Framework Core, ASP.NET Identity, JWT.
-
-
-🏋️ FitnessTracker - Project Capabilities Summary
-Core Features:
-1. Workout Management
- 
-  ✅ Workout Logging - Log workouts with exercises, sets, reps, and weight
-
-  ✅ Workout Templates - Create reusable workout templates
-  
-  ✅ Template Copying - Create workouts from templates
-  
-  ✅ Calendar View - View and manage workouts on a calendar interface
-  
-  ✅ Exercise Reordering - Ability to reorder exercises within workouts
-  
-  ✅ Duplicate Prevention - Prevents adding the same exercise twice in a workout
-  
-3. Exercise & Category Management
-
-  ✅ Exercise Definitions - Create and manage custom exercises
-
-  ✅ Exercise Categories - Organize exercises by category (e.g., chest, back, legs)
-  
-  ✅ Custom Exercise Library - Full CRUD operations for exercise management
-  
-5. Personal Records (PRs)
-  
-  ✅ PR Tracking - Automatically track personal bests per exercise
-  
-  ✅ PR Display - Visual indicators showing when you achieve new PRs
-  
-  ✅ Per-Rep PRs - Track best weight for each rep count (e.g., best 5-rep squat, best 8-rep squat)
-  
-7. Progress Photos & AI Analysis
-
-  ✅ Photo Upload - Upload progress photos
- 
-  ✅ Photo Processing - Automated background processing via Python microservice
-
-  ✅ Thumbnail Generation - Automatic thumbnail creation
-
-  ✅ Auto-Cropping - AI-powered cropping to focus on the subject
-  
-  ✅ Pose Detection - Google MediaPipe-powered bodybuilding pose detection
- 
-  ✅ Landmark Visualization - Display body landmarks overlay on photos
-  
-  ✅ Landmark Toggle - Show/hide landmark overlays
-  
-  ✅ Photo Gallery - View all progress photos with analysis
-8. Security & Authentication
- 
-  ✅ JWT Authentication - Secure JWT-based auth with httpOnly cookies
- 
-  ✅ User Registration & Login - Complete user management
- 
-  ✅ Protected Routes - Frontend and backend route protection
- 
-  ✅ Resource Ownership Validation - Users can only access their own data
-  
-  ✅ Admin Support - Built-in admin role bypass for future admin features
-  
-  ✅ Action Filters - Prevents unauthorized access to workouts, templates, and photos
-  
-**Technical Architecture:**
-Frontend: React + Vite
-Backend: ASP.NET Core 8 (.NET)
-Database: PostgreSQL
-Photo Processing: Python microservice (Docker)
-Message Queue: RabbitMQ
-Authentication: ASP.NET Identity + JWT
-AI/ML: Google MediaPipe for pose detection
-
-
-## Architecture
-
-```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│  React Frontend │────▶│  .NET Core API  │────▶│   PostgreSQL    │
-│   (Vite)        │     │   (Port 5067)   │     │   (Port 5432)   │
-└─────────────────┘     └────────┬────────┘     └─────────────────┘
-                                 │
-                                 │ Publish
-                                 ▼
-                        ┌─────────────────┐
-                        │    RabbitMQ     │
-                        │  (Port 5672)    │
-                        └────────┬────────┘
-                                 │ Consume
-                                 ▼
-                        ┌─────────────────┐
-                        │ Python Photo    │
-                        │ Processor       │
-                        │ (Docker)        │
-                        └─────────────────┘
+```mermaid
+graph TB
+    subgraph "Frontend"
+        SWA[Azure Static Web App<br/>React + Vite]
+    end
+    
+    subgraph "Azure Container Apps Environment"
+        API[.NET 10 API<br/>fitness-api]
+        PROC[Python Processor<br/>fitness-photo-processor]
+        RMQ[RabbitMQ<br/>fitness-rabbitmq]
+    end
+    
+    subgraph "Data Layer"
+        DB[(PostgreSQL<br/>fitness-db)]
+        BLOB[Azure Blob Storage<br/>progress-photos]
+    end
+    
+    SWA -->|HTTPS| API
+    API -->|Photos| BLOB
+    API -->|Queue Messages| RMQ
+    API -->|Data| DB
+    RMQ -->|Process Photos| PROC
+    PROC -->|Photos| BLOB
+    PROC -->|Update Status| DB
 ```
 
-## Prerequisites
+## ✨ Features
 
+- **User Authentication** - JWT + HTTP-only cookies with ASP.NET Core Identity
+- **Workout Tracking** - Log exercises, sets, reps, and personal records
+- **Progress Photos** - Upload photos with automatic AI-powered body analysis
+- **Pose Detection** - MediaPipe-based bodybuilding pose classification
+- **Photo Processing** - Automatic cropping, thumbnails, and landmark visualization
+- **API Versioning** - URL-based versioning (`/api/v1/...`)
+- **Rate Limiting** - Built-in protection against abuse
+
+## 🚀 Quick Start (Local Development)
+
+### Prerequisites
 - .NET 10 SDK
-- Node.js 25+
-- PostgreSQL (installed locally)
-- RabbitMQ (Docker: `rabbitmq:4-management`)
-- Docker Desktop
+- Node.js 18+
+- Python 3.11+
+- PostgreSQL 14+
+- RabbitMQ
+- Docker (optional)
 
-## Quick Start
-
-### 1. Configure Database Connection
-
-Copy the template and add your PostgreSQL password:
-
+### 1. Clone Repository
 ```bash
-# Copy template
-copy src\FitnessTracker.API\appsettings.Development.json.template src\FitnessTracker.API\appsettings.Development.json
-
-# Edit appsettings.Development.json and replace YOUR_PASSWORD_HERE with your actual password
+git clone https://github.com/YOUR_USERNAME/FitnessTracker.git
+cd FitnessTracker
 ```
 
-### 2. Create PostgreSQL Database
+### 2. Setup Database
+```bash
+# Create database
+createdb fitness_tracker
 
-```sql
-CREATE DATABASE fitness_tracker;
+# Update connection string in src/FitnessTracker.API/appsettings.json
 ```
 
-### 3. Start RabbitMQ (if not already running)
-
+### 3. Run Backend
 ```bash
-docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:4-management
-```
-
-### 4. Run the .NET API
-
-```bash
-cd src\FitnessTracker.API
+cd src/FitnessTracker.API
 dotnet run
 ```
 
-The API will be available at: `http://localhost:5067`
-Swagger UI: `http://localhost:5067/swagger`
-
-### 5. Run the React Frontend
-
+### 4. Run Photo Processor
 ```bash
-cd src\FitnessTracker.Web
+cd services/photo-processor
+pip install -r requirements.txt
+python main.py
+```
+
+### 5. Run Frontend
+```bash
+cd src/FitnessTracker.Web
+npm install
 npm run dev
 ```
 
-The frontend will be available at: `http://localhost:5173`
+Visit `http://localhost:5173`
 
-### 6. Start the Photo Processor
+## ☁️ Azure Deployment
 
-Create a `.env` file in the project root:
+### Resource Requirements
+- Resource Group (`FitnessTrackerRG`)
+- Virtual Network with 2 subnets
+- PostgreSQL Flexible Server (Burstable, Standard_B1ms)
+- Container Apps Environment
+- Container Registry
+- Storage Account (Standard_LRS)
+- Static Web App
 
-```bash
-copy .env.template .env
-# Edit .env and set your DB_PASSWORD
+### Estimated Monthly Cost
+| Resource | Tier | Cost |
+|----------|------|------|
+| PostgreSQL | Burstable B1ms | ~$15 |
+| Container Apps | Consumption | ~$0-5 |
+| Storage Account | Standard_LRS | ~$0.01 |
+| Static Web App | Free | $0 |
+| Container Registry | Basic | ~$5 |
+| **Total** | | **~$20-25/month** |
+
+### Deployment Steps
+
+#### 1. Create Infrastructure
+```powershell
+# Create resource group
+az group create --name FitnessTrackerRG --location westus
+
+# Create VNet
+az network vnet create `
+  --name fitness-vnet `
+  --resource-group FitnessTrackerRG `
+  --location westus `
+  --address-prefixes 10.0.0.0/16
+
+# Create subnets (apps + database)
+az network vnet subnet create `
+  --name snet-apps `
+  --resource-group FitnessTrackerRG `
+  --vnet-name fitness-vnet `
+  --address-prefixes 10.0.0.0/23 `
+  --delegations Microsoft.App/environments
+
+az network vnet subnet create `
+  --name snet-db `
+  --resource-group FitnessTrackerRG `
+  --vnet-name fitness-vnet `
+  --address-prefixes 10.0.2.0/24 `
+  --delegations Microsoft.DBforPostgreSQL/flexibleServers
 ```
 
-Then start the container:
-
-```bash
-docker-compose up photo-processor
+#### 2. Create Database
+```powershell
+az postgres flexible-server create `
+  --resource-group FitnessTrackerRG `
+  --name fitness-db `
+  --location westus `
+  --admin-user myadmin `
+  --admin-password "YourStrongPassword!" `
+  --sku-name Standard_B1ms `
+  --tier Burstable `
+  --vnet fitness-vnet `
+  --subnet snet-db
 ```
 
-## Project Structure
+#### 3. Create Storage Account
+```powershell
+az storage account create `
+  --name fitnesstrackerstg `
+  --resource-group FitnessTrackerRG `
+  --location westus `
+  --sku Standard_LRS
+
+az storage container create `
+  --name progress-photos `
+  --account-name fitnesstrackerstg `
+  --public-access off
+```
+
+#### 4. Setup GitHub Secrets
+
+Configure these secrets in your GitHub repository:
+
+| Secret Name | Value |
+|-------------|-------|
+| `AZURE_CREDENTIALS` | Service principal JSON from `az ad sp create-for-rbac` |
+| `ACR_LOGIN_SERVER` | `youracr.azurecr.io` |
+| `ACR_USERNAME` | From `az acr credential show` |
+| `ACR_PASSWORD` | From `az acr credential show` |
+| `DB_CONNECTION_STRING` | PostgreSQL connection string |
+| `AZURE_STORAGE_CONNECTION_STRING` | From `az storage account show-connection-string` |
+| `VITE_API_URL` | Your API URL from Container Apps |
+
+#### 5. Deploy Containers
+
+The complete deployment commands are in [`docs/Azure-Deployment-Walkthrough.md`](docs/Azure-Deployment-Walkthrough.md).
+
+Key environment variables:
+
+**API Container:**
+```powershell
+--env-vars `
+  "ConnectionStrings__DefaultConnection=..." `
+  "RabbitMQ__Host=..." `
+  "AzureStorage__ConnectionString=..." `
+  "AllowedOrigins__0=https://your-app.azurestaticapps.net" `
+  "CookieSettings__SameSiteMode=None"
+```
+
+**Photo Processor:**
+```powershell
+--env-vars `
+  "RABBITMQ_HOST=..." `
+  "DB_HOST=fitness-db.postgres.database.azure.com" `
+  "DB_NAME=fitnessTracker" `
+  "AZURE_STORAGE_CONNECTION_STRING=..."
+```
+
+## 📁 Project Structure
 
 ```
 FitnessTracker/
 ├── src/
-│   ├── FitnessTracker.API/          # ASP.NET Core Web API
-│   │   ├── Controllers/             # REST endpoints
-│   │   ├── appsettings.json         # Configuration
-│   │   └── Program.cs               # Service setup
-│   │
-│   ├── FitnessTracker.Core/         # Domain layer
-│   │   ├── Entities/                # Domain models
-│   │   └── Interfaces/              # Repository contracts
-│   │
-│   ├── FitnessTracker.Infrastructure/
-│   │   ├── Data/                    # EF Core DbContext
-│   │   ├── Repositories/            # Data access
-│   │   └── Messaging/               # RabbitMQ publisher
-│   │
-│   └── FitnessTracker.Web/          # React frontend
-│       └── src/
-│           ├── pages/               # Dashboard, Workouts, Photos
-│           ├── services/            # API client
-│           └── index.css            # Premium dark theme
-│
+│   ├── FitnessTracker.API/          # .NET 10 Web API
+│   ├── FitnessTracker.Core/         # Domain entities & interfaces
+│   ├── FitnessTracker.Infrastructure/ # Data access & services
+│   └── FitnessTracker.Web/          # React frontend (Vite)
 ├── services/
-│   └── photo-processor/             # Python microservice
-│       ├── main.py                  # RabbitMQ consumer
-│       ├── processor.py             # Image processing
-│       └── Dockerfile               # Container build
-│
-└── docker-compose.yml               # Development orchestration
+│   └── photo-processor/             # Python image processing service
+├── .github/
+│   └── workflows/                   # CI/CD pipelines
+└── docs/                            # Documentation
 ```
 
-## Features
+## 🔧 Technology Stack
 
-### Workout Logging
-- Create, edit, and delete workouts
-- Track exercises with sets, reps, and weight
-- View workout history
+### Frontend
+- React 18 with Vite
+- Material-UI (MUI)
+- React Router v6
+- Axios for API calls
 
-### Progress Photos
-- Upload photos (JPEG, PNG, WebP)
-- Automatic thumbnail generation
-- Body composition analysis
-- Processing status tracking
+### Backend API
+- .NET 10 (ASP.NET Core)
+- Entity Framework Core
+- PostgreSQL
+- JWT Authentication
+- ASP.NET Core Identity
+- RabbitMQ (via pika client)
 
-### Photo Processing (Python Microservice)
-- **Thumbnail generation**: Creates 300x300 thumbnails
-- **Quality analysis**: Brightness, contrast, resolution scoring
-- **Body detection**: Skin tone detection for progress photos
-- **Recommendations**: Tips for better progress photos
+### Photo Processor
+- Python 3.11
+- MediaPipe (pose detection)
+- OpenCV (image processing)
+- Pillow (thumbnails)
+- pika (RabbitMQ client)
+- psycopg2 (PostgreSQL)
 
-## API Endpoints
+### Azure Services
+- **Container Apps** - API & Python processor hosting
+- **Static Web Apps** - Frontend hosting
+- **PostgreSQL Flexible Server** - Database
+- **Blob Storage** - Photo storage with SAS tokens
+- **Container Registry** - Docker image storage
+- **Virtual Network** - Secure networking
 
-### Workouts
-- `GET /api/workouts` - List all workouts
-- `GET /api/workouts/{id}` - Get workout details
-- `POST /api/workouts` - Create workout
-- `PUT /api/workouts/{id}` - Update workout
-- `DELETE /api/workouts/{id}` - Delete workout
+## 🐛 Troubleshooting
 
-### Photos
-- `GET /api/photos` - List all photos
-- `GET /api/photos/{id}` - Get photo details
-- `POST /api/photos` - Upload photo (multipart/form-data)
-- `DELETE /api/photos/{id}` - Delete photo
+### Common Issues
 
-## Development
+**1. Frontend shows "Failed to Fetch"**
+- Ensure `VITE_API_URL` is set correctly in `.env.production`
+- Check CORS settings in API (`AllowedOrigins`)
 
-### Run Database Migrations
+**2. Photos stuck in "Pending" status**
+- Check RabbitMQ connectivity (use full FQDN, not short hostname)
+- Verify Azure Storage connection string is set on both API and Processor
+- Check processor logs: `az containerapp logs show --name fitness-photo-processor`
 
-```bash
-dotnet ef database update --project src\FitnessTracker.Infrastructure --startup-project src\FitnessTracker.API
-```
+**3. Login fails with 401**
+- Verify `CookieSettings__SameSiteMode=None` is set
+- Ensure `CookieSettings__SecureCookies=true` for HTTPS
+- Check `AllowedOrigins` matches your frontend URL exactly
 
-### Build All Projects
+**4. Database connection errors**
+- Use public FQDN: `fitness-db.postgres.database.azure.com`
+- Database name is case-sensitive: `fitnessTracker`
+- Don't use private DNS name - it often fails to resolve
 
-```bash
-dotnet build
-```
+See [`docs/Azure-Deployment-Walkthrough.md`](docs/Azure-Deployment-Walkthrough.md) for comprehensive troubleshooting with 10+ documented issues and solutions.
 
-### Run Tests
+## 📖 Documentation
 
-```bash
-dotnet test
-```
+- **[Azure Deployment Walkthrough](docs/Azure-Deployment-Walkthrough.md)** - Complete step-by-step Azure setup
+- **[Blob Storage Integration](docs/blob-storage-deployment.md)** - Shared storage setup guide
+- **[API Documentation](src/FitnessTracker.API/README.md)** - API endpoints & authentication
+- **[Photo Processor](services/photo-processor/README.md)** - Image processing pipeline
 
-## Troubleshooting
+## 🔐 Security Features
 
-### RabbitMQ Connection Issues
-- Ensure RabbitMQ container is running: `docker ps`
-- Check RabbitMQ management UI: http://localhost:15672 (guest/guest)
+- **Authentication**: JWT tokens in HTTP-only cookies
+- **Password Requirements**: Minimum 10 characters with complexity rules
+- **CORS**: Configured for specific frontend origin
+- **Rate Limiting**: 100 requests/minute per client
+- **Secure Cookies**: SameSite=None with Secure flag for cross-domain
+- **Private Networking**: Database and RabbitMQ in VNet
+- **Blob Storage**: Private containers with time-limited SAS URLs
 
-### Database Connection Issues
-- Verify PostgreSQL is running
-- Check connection string in appsettings.Development.json
-- Ensure `fitness_tracker` database exists
+## 🤝 Contributing
 
-### Photo Processing Not Working
-- Check Docker container logs: `docker-compose logs photo-processor`
-- Verify uploads folder is mounted correctly
-- Check RabbitMQ queue: http://localhost:15672/#/queues
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
+## 📝 License
 
-This code is purely for my own purposes and is not intended to be used by anyone else
+This project is licensed under the MIT License.
 
+## 🙏 Acknowledgments
 
+- [MediaPipe](https://google.github.io/mediapipe/) - Pose detection
+- [Material-UI](https://mui.com/) - React components
+- [RabbitMQ](https://www.rabbitmq.com/) - Message broker
+
+---
+
+**Need Help?** Check the [troubleshooting guide](docs/Azure-Deployment-Walkthrough.md#troubleshooting--production-configuration) or open an issue.
