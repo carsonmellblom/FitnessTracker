@@ -4,15 +4,18 @@ Consumes messages from RabbitMQ and processes photos
 """
 import json
 import time
+import os
 import psycopg2
 import pika
 from pika.exceptions import AMQPConnectionError
 
 from config import (
     RABBITMQ_HOST, RABBITMQ_PORT, RABBITMQ_USER, RABBITMQ_PASSWORD, RABBITMQ_QUEUE,
-    DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
+    DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD,
+    AZURE_STORAGE_CONNECTION_STRING, AZURE_STORAGE_CONTAINER_NAME
 )
 from processor import process_photo
+from storage import create_storage
 
 
 def get_db_connection():
@@ -76,22 +79,41 @@ def update_photo_status(photo_id: int, status: str, result: dict = None):
         conn.close()
 
 
-def process_message(ch, method, properties, body):
+def process_message(ch, method, properties, body, storage):
     """Process incoming RabbitMQ message."""
+    temp_dir = "/tmp/photo_processing"
+    os.makedirs(temp_dir, exist_ok=True)
+    
     try:
         message = json.loads(body)
         photo_id = message['PhotoId']
-        image_path = message['ImagePath']
+        filename = message['ImagePath']  # Just the filename now, max the full path
         
-        print(f"Processing photo {photo_id}: {image_path}")
+        print(f"Processing photo {photo_id}: {filename}")
         
         # Update status to Processing
         update_photo_status(photo_id, 'Processing')
         
+        # Download photo from storage to temp location
+        local_path = os.path.join(temp_dir, filename)
+        if not storage.download_file(filename, local_path):
+            raise Exception(f"Failed to download file: {filename}")
+        
         # Process the photo
-        result = process_photo(image_path, photo_id)
+        result = process_photo(local_path, photo_id)
         
         if result['success']:
+            # Upload processed images back to storage
+            if result.get('thumbnail_path'):
+                thumb_filename = os.path.basename(result['thumbnail_path'])
+                storage.upload_file(result['thumbnail_path'], thumb_filename, "image/jpeg")
+                result['thumbnail_path'] = thumb_filename  # Store just filename in DB
+            
+            if result.get('cropped_path'):
+                crop_filename = os.path.basename(result['cropped_path'])
+                storage.upload_file(result['cropped_path'], crop_filename, "image/jpeg")
+                result['cropped_path'] = crop_filename  # Store just filename in DB
+            
             update_photo_status(photo_id, 'Completed', result)
             print(f"Successfully processed photo {photo_id}")
         else:
@@ -100,6 +122,17 @@ def process_message(ch, method, properties, body):
         
         # Acknowledge the message
         ch.basic_ack(delivery_tag=method.delivery_tag)
+        
+        # Clean up temp files
+        try:
+            if os.path.exists(local_path):
+                os.remove(local_path)
+            if result.get('thumbnail_path') and os.path.exists(result['thumbnail_path']):
+                os.remove(result['thumbnail_path'])
+            if result.get('cropped_path') and os.path.exists(result['cropped_path']):
+                os.remove(result['cropped_path'])
+        except Exception as cleanup_err:
+            print(f"Error cleaning up temp files: {cleanup_err}")
         
     except json.JSONDecodeError as e:
         print(f"Invalid message format: {e}")
@@ -142,6 +175,9 @@ def main():
     print(f"RabbitMQ: {RABBITMQ_HOST}:{RABBITMQ_PORT}", flush=True)
     print(f"PostgreSQL: {DB_HOST}:{DB_PORT}/{DB_NAME}", flush=True)
     
+    # Initialize storage (Azure Blob or Local)
+    storage = create_storage(AZURE_STORAGE_CONNECTION_STRING, AZURE_STORAGE_CONTAINER_NAME)
+    
     connection = connect_to_rabbitmq()
     channel = connection.channel()
     
@@ -151,8 +187,11 @@ def main():
     # Set prefetch count (process one message at a time)
     channel.basic_qos(prefetch_count=1)
     
-    # Start consuming
-    channel.basic_consume(queue=RABBITMQ_QUEUE, on_message_callback=process_message)
+    # Start consuming with storage passed to callback
+    channel.basic_consume(
+        queue=RABBITMQ_QUEUE,
+        on_message_callback=lambda ch, method, properties, body: process_message(ch, method, properties, body, storage)
+    )
     
     print(f"Listening for messages on queue: {RABBITMQ_QUEUE}")
     print("Press CTRL+C to exit")

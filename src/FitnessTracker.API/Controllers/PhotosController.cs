@@ -18,18 +18,18 @@ public class PhotosController : ControllerBase
     private readonly IPhotoRepository _photoRepository;
     private readonly IMessagePublisher _messagePublisher;
     private readonly ILogger<PhotosController> _logger;
-    private readonly IWebHostEnvironment _environment;
+    private readonly IFileStorageService _fileStorage;
 
     public PhotosController(
         IPhotoRepository photoRepository,
         IMessagePublisher messagePublisher,
         ILogger<PhotosController> logger,
-        IWebHostEnvironment environment)
+        IFileStorageService fileStorage)
     {
         _photoRepository = photoRepository;
         _messagePublisher = messagePublisher;
         _logger = logger;
-        _environment = environment;
+        _fileStorage = fileStorage;
     }
 
     private string GetUserId() => User.FindFirstValue(ClaimTypes.NameIdentifier) ?? throw new UnauthorizedAccessException();
@@ -69,19 +69,12 @@ public class PhotosController : ControllerBase
             return BadRequest("Invalid file type. Allowed: JPEG, PNG, WebP");
         }
 
-        // Create uploads directory
-        var uploadsPath = Path.Combine(_environment.ContentRootPath, "uploads");
-        Directory.CreateDirectory(uploadsPath);
-
         // Generate unique filename
         var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
-        var filePath = Path.Combine(uploadsPath, fileName);
 
-        // Save file
-        using (var stream = new FileStream(filePath, FileMode.Create))
-        {
-            await file.CopyToAsync(stream);
-        }
+        // Save file to storage (local or blob)
+        await using var stream = file.OpenReadStream();
+        var storagePath = await _fileStorage.SaveFileAsync(stream, fileName, file.ContentType);
 
         // Create database record
         var userId = GetUserId();
@@ -89,19 +82,17 @@ public class PhotosController : ControllerBase
         {
             UserId = userId,
             OriginalFileName = file.FileName,
-            ImagePath = $"/uploads/{fileName}",
+            ImagePath = storagePath, // Store the storage path/filename
             ProcessingStatus = PhotoProcessingStatus.Pending
         };
 
         var created = await _photoRepository.CreateAsync(photo);
-        _logger.LogInformation("Uploaded photo {PhotoId}: {FileName}", created.Id, file.FileName);
+        _logger.LogInformation("Uploaded photo {PhotoId}: {FileName} to storage", created.Id, file.FileName);
 
         // Queue for processing
         try
         {
-            // Use container path (/app/uploads) instead of Windows path for Docker
-            var containerPath = $"/app/uploads/{fileName}";
-            await _messagePublisher.PublishPhotoForProcessingAsync(created.Id, containerPath);
+            await _messagePublisher.PublishPhotoForProcessingAsync(created.Id, fileName);
             _logger.LogInformation("Queued photo {PhotoId} for processing", created.Id);
         }
         catch (Exception ex)
@@ -123,35 +114,33 @@ public class PhotosController : ControllerBase
             return NotFound();
         }
 
-        // Delete file from disk
-        var uploadsPath = Path.Combine(_environment.ContentRootPath, "uploads");
-        var filePath = Path.Combine(uploadsPath, Path.GetFileName(photo.ImagePath));
-        if (System.IO.File.Exists(filePath))
+        // Delete files from storage
+        if (!string.IsNullOrEmpty(photo.ImagePath))
         {
-            System.IO.File.Delete(filePath);
+            await _fileStorage.DeleteFileAsync(Path.GetFileName(photo.ImagePath));
         }
 
-        // Delete thumbnail if exists
         if (!string.IsNullOrEmpty(photo.ThumbnailPath))
         {
-            var thumbPath = Path.Combine(uploadsPath, Path.GetFileName(photo.ThumbnailPath));
-            if (System.IO.File.Exists(thumbPath))
-            {
-                System.IO.File.Delete(thumbPath);
-            }
+            await _fileStorage.DeleteFileAsync(Path.GetFileName(photo.ThumbnailPath));
+        }
+
+        if (!string.IsNullOrEmpty(photo.CroppedImagePath))
+        {
+            await _fileStorage.DeleteFileAsync(Path.GetFileName(photo.CroppedImagePath));
         }
 
         await _photoRepository.DeleteAsync(id);
         return NoContent();
     }
 
-    private static PhotoDto MapToDto(ProgressPhoto photo) => new()
+    private PhotoDto MapToDto(ProgressPhoto photo) => new()
     {
         Id = photo.Id,
         OriginalFileName = photo.OriginalFileName,
-        ImageUrl = photo.ImagePath,
-        ThumbnailUrl = photo.ThumbnailPath,
-        CroppedImageUrl = photo.CroppedImagePath != null ? $"/uploads/{photo.CroppedImagePath}" : null,
+        ImageUrl = !string.IsNullOrEmpty(photo.ImagePath) ? _fileStorage.GetFileUrl(photo.ImagePath) : string.Empty,
+        ThumbnailUrl = !string.IsNullOrEmpty(photo.ThumbnailPath) ? _fileStorage.GetFileUrl(photo.ThumbnailPath) : null,
+        CroppedImageUrl = !string.IsNullOrEmpty(photo.CroppedImagePath) ? _fileStorage.GetFileUrl(photo.CroppedImagePath) : null,
         ProcessingStatus = photo.ProcessingStatus.ToString(),
         ProcessingError = photo.ProcessingError,
         BodyAnalysis = photo.BodyAnalysisJson,
