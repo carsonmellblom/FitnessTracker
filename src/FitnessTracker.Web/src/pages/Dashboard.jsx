@@ -19,7 +19,8 @@ import {
 } from '@mui/material';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import CameraAltIcon from '@mui/icons-material/CameraAlt';
-import { workoutsApi, photosApi, getImageUrl } from '../services/api';
+import BrokenImageIcon from '@mui/icons-material/BrokenImage';
+import { workoutsApi, photosApi, getPhotoUrl } from '../services/api';
 
 function Dashboard() {
     const [stats, setStats] = useState({
@@ -406,15 +407,30 @@ function Dashboard() {
                                                             <CardMedia
                                                                 component="img"
                                                                 height="150"
-                                                                image={getImageUrl(photo.thumbnailUrl || photo.imageUrl)}
+                                                                image={getPhotoUrl(photo.id, 'thumbnail')}
                                                                 alt={altText}
                                                                 title={altText}
                                                                 sx={{ objectFit: 'cover' }}
                                                                 onError={(e) => {
-                                                                    e.target.src = 'https://via.placeholder.com/300?text=Image';
-                                                                    e.target.alt = 'Image failed to load';
+                                                                    e.target.style.display = 'none';
+                                                                    e.target.nextSibling.style.display = 'flex';
                                                                 }}
                                                             />
+                                                            <Box
+                                                                sx={{
+                                                                    height: 150,
+                                                                    display: 'none',
+                                                                    flexDirection: 'column',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center',
+                                                                    bgcolor: 'action.hover'
+                                                                }}
+                                                            >
+                                                                <BrokenImageIcon sx={{ fontSize: 40, color: 'text.disabled', mb: 0.5 }} />
+                                                                <Typography variant="caption" color="text.disabled">
+                                                                    Unavailable
+                                                                </Typography>
+                                                            </Box>
                                                         </Card>
                                                     </Box>
                                                 </Grid>

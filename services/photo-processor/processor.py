@@ -149,7 +149,7 @@ def crop_to_subject(img_array: np.ndarray, pose_landmarks, original_path: str) -
     cv2.imwrite(cropped_path, cropped_bgr, [cv2.IMWRITE_JPEG_QUALITY, 95])
     
     print(f"  CROP - Saved cropped image to: {cropped_filename} ({crop_x2-crop_x1}x{crop_y2-crop_y1})", flush=True)
-    return cropped_filename
+    return cropped_path  # Return full path so main.py can upload it
 
 def process_photo(image_path: str, photo_id: int) -> dict:
     """
@@ -241,7 +241,7 @@ def generate_thumbnail(img: Image.Image, original_path: str, photo_id: int) -> s
     thumbnail.save(thumbnail_path, 'JPEG', quality=85)
     
     print(f"Generated thumbnail for photo {photo_id}: {thumbnail_path}", flush=True)
-    return f"/uploads/{thumbnail_name}"
+    return thumbnail_path  # Return full path so main.py can upload it
 
 
 def analyze_body_composition(img: Image.Image) -> dict:

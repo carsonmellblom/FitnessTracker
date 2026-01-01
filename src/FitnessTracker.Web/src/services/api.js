@@ -14,6 +14,13 @@ const fetchWithAuth = (url, options = {}) => {
     });
 };
 
+// Helper to construct secure photo URLs (proxied through API with auth check)
+export const getPhotoUrl = (photoId, type = 'original') => {
+    if (!photoId) return null;
+    const typeParam = type !== 'original' ? `?type=${type}` : '';
+    return `${API_BASE_URL}/photos/${photoId}/image${typeParam}`;
+};
+
 // Workout API
 export const workoutsApi = {
     getAll: async () => {

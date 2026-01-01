@@ -113,6 +113,17 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 // Register RabbitMQ publisher, add as a singleton because we want to use the same connection for the entire application
 builder.Services.AddSingleton<IMessagePublisher, RabbitMqPublisher>();
 
+// Register File Storage - Use Blob if Azure connection string present, otherwise local
+if (!string.IsNullOrEmpty(builder.Configuration["AzureStorage:ConnectionString"]))
+{
+    builder.Services.AddSingleton<IFileStorageService, BlobStorageService>();
+}
+else
+{
+    builder.Services.AddSingleton<IFileStorageService, LocalFileStorageService>();
+}
+
+
 
 // Get the origins from appsettings.json, if null, pass in an empty array
 var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
