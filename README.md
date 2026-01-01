@@ -361,7 +361,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- [MediaPipe](https://google.github.io/mediapipe/) - Pose detection
+- [MediaPipe](https://github.com/google-ai-edge/mediapipe) - Pose detection
 - [Material-UI](https://mui.com/) - React components
 - [RabbitMQ](https://www.rabbitmq.com/) - Message broker
 
