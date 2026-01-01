@@ -72,7 +72,7 @@ class BlobStorage(FileStorage):
     def __init__(self, connection_string: str, container_name: str = "progress-photos"):
         self.blob_service_client = BlobServiceClient.from_connection_string(connection_string)
         self.container_name = container_name
-        self.container_client = self.blob_service_client.get_blob_container_client(container_name)
+        self.container_client = self.blob_service_client.get_container_client(container_name)
         
         # Create container if it doesn't exist
         if not self.container_client.exists():
