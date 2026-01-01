@@ -28,7 +28,8 @@ import CloseIcon from '@mui/icons-material/Close';
 import EditIcon from '@mui/icons-material/Edit';
 import CropIcon from '@mui/icons-material/Crop';
 import AccessibilityNewIcon from '@mui/icons-material/AccessibilityNew';
-import { photosApi, getImageUrl } from '../services/api';
+import BrokenImageIcon from '@mui/icons-material/BrokenImage';
+import { photosApi, getPhotoUrl } from '../services/api';
 import LandmarkOverlay from '../components/LandmarkOverlay';
 
 // Helper function to get chip color based on quality score
@@ -515,10 +516,15 @@ function Photos() {
                                         {/* Photo */}
                                         <Box
                                             component="img"
-                                            src={getImageUrl(photo.thumbnailUrl || photo.imageUrl)}
+                                            src={getPhotoUrl(photo.id, 'thumbnail')}
                                             alt={photo.originalFileName}
                                             onError={(e) => {
-                                                e.target.src = 'https://via.placeholder.com/300?text=Image';
+                                                // Only hide if image actually failed to load
+                                                if (!e.target.complete || e.target.naturalHeight === 0) {
+                                                    e.target.style.display = 'none';
+                                                    const sibling = e.target.nextSibling;
+                                                    if (sibling) sibling.style.display = 'flex';
+                                                }
                                             }}
                                             sx={{
                                                 width: '100%',
@@ -528,6 +534,23 @@ function Photos() {
                                                 borderRadius: 1
                                             }}
                                         />
+                                        <Box
+                                            sx={{
+                                                width: '100%',
+                                                aspectRatio: '3/4',
+                                                display: 'none',
+                                                flexDirection: 'column',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                bgcolor: 'action.hover',
+                                                borderRadius: 1
+                                            }}
+                                        >
+                                            <BrokenImageIcon sx={{ fontSize: 60, color: 'text.disabled', mb: 1 }} />
+                                            <Typography variant="caption" color="text.disabled">
+                                                Image unavailable
+                                            </Typography>
+                                        </Box>
                                     </CardContent>
                                 </Card>
                             </Grid>
@@ -622,10 +645,9 @@ function Photos() {
                                 <Box
                                     component="img"
                                     ref={modalImageRef}
-                                    src={getImageUrl(
-                                        viewMode === 'cropped' && selectedPhoto.croppedImageUrl
-                                            ? selectedPhoto.croppedImageUrl
-                                            : selectedPhoto.imageUrl
+                                    src={getPhotoUrl(
+                                        selectedPhoto.id,
+                                        viewMode === 'cropped' ? 'cropped' : 'original'
                                     )}
                                     alt={selectedPhoto.originalFileName}
                                     sx={{
@@ -635,9 +657,27 @@ function Photos() {
                                         borderRadius: 1
                                     }}
                                     onError={(e) => {
-                                        e.target.src = 'https://via.placeholder.com/600x400?text=Image+Not+Found';
+                                        e.target.style.display = 'none';
+                                        e.target.nextSibling.style.display = 'flex';
                                     }}
                                 />
+                                <Box
+                                    sx={{
+                                        width: '100%',
+                                        height: '400px',
+                                        display: 'none',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        bgcolor: 'action.hover',
+                                        borderRadius: 1
+                                    }}
+                                >
+                                    <BrokenImageIcon sx={{ fontSize: 80, color: 'text.disabled', mb: 2 }} />
+                                    <Typography variant="h6" color="text.disabled">
+                                        Image Not Found
+                                    </Typography>
+                                </Box>
                                 {viewMode === 'landmarks' && (
                                     <LandmarkOverlay
                                         landmarks={getLandmarks(selectedPhoto)}
