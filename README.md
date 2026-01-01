@@ -58,6 +58,7 @@ graph TB
 - **Photo Processing** - Automatic cropping, thumbnails, and landmark visualization
 - **API Versioning** - URL-based versioning (`/api/v1/...`)
 - **Rate Limiting** - Built-in .net rate limiting middleware
+- **Health Checks** - Built-in .net rate health checks for RabbitMq and PostgresSQL connections (http://{website}/health)
 
 ## 📸 Photo Processing Flow
 
