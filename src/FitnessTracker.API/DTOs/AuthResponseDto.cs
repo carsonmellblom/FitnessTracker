@@ -1,11 +1,11 @@
 namespace FitnessTracker.API.DTOs;
 
-public class AuthResponseDto
+public record AuthResponseDto
 {
-    public string UserId { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
-    public string UserName { get; set; } = string.Empty;
-    public string AccessToken { get; set; } = string.Empty;
-    public string RefreshToken { get; set; } = string.Empty;
-    public DateTime ExpiresAt { get; set; }
+    public required string UserId { get; init; }
+    public required string Email { get; init; }
+    public required string UserName { get; init; }
+    public required string AccessToken { get; init; }
+    public required string RefreshToken { get; init; }
+    public required DateTime ExpiresAt { get; init; }
 }

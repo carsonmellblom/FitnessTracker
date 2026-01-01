@@ -72,16 +72,16 @@ public class PersonalRecordsController : ControllerBase
     }
 }
 
-public class ExercisePRsDto
+public record ExercisePRsDto
 {
-    public int ExerciseDefinitionId { get; set; }
-    public string ExerciseName { get; set; } = string.Empty;
-    public List<PRRecordDto> Records { get; set; } = new();
+    public required int ExerciseDefinitionId { get; init; }
+    public required string ExerciseName { get; init; }
+    public required List<PRRecordDto> Records { get; init; }
 }
 
-public class PRRecordDto
+public record PRRecordDto
 {
-    public int Reps { get; set; }
-    public decimal Weight { get; set; }
-    public DateTime AchievedDate { get; set; }
+    public required int Reps { get; init; }
+    public required decimal Weight { get; init; }
+    public required DateTime AchievedDate { get; init; }
 }

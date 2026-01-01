@@ -1,7 +1,7 @@
 namespace FitnessTracker.API.DTOs;
 
-public class LoginDto
+public record LoginDto
 {
-    public string Email { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
+    public required string Email { get; init; }
+    public required string Password { get; init; }
 }
