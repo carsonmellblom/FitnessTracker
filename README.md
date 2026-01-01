@@ -153,16 +153,6 @@ Visit `http://localhost:5173`
 - Storage Account (Standard_LRS)
 - Static Web App
 
-### Estimated Monthly Cost
-| Resource | Tier | Cost |
-|----------|------|------|
-| PostgreSQL | Burstable B1ms | ~$15 |
-| Container Apps | Consumption | ~$0-5 |
-| Storage Account | Standard_LRS | ~$0.01 |
-| Static Web App | Free | $0 |
-| Container Registry | Basic | ~$5 |
-| **Total** | | **~$20-25/month** |
-
 ### Deployment Steps
 
 #### 1. Create Infrastructure
