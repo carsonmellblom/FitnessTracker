@@ -202,7 +202,7 @@ az staticwebapp create --name fitness-web --resource-group FitnessTrackerRG --lo
     | `ACR_PASSWORD` | Output of `az acr credential show --name fitnesstrackerappacr --query "passwords[0].value" -o tsv` |
     | `DB_CONNECTION_STRING` | `Host=fitness-db.fitness.private.postgres.database.azure.com;Database=fitnessTracker;Username=myadmin;Password=YourStrongPassword!` |
     | `AZURE_STATIC_WEB_APPS_API_TOKEN` | Output of `az staticwebapp secrets list --name fitness-web --resource-group FitnessTrackerRG --query "properties.apiKey" -o tsv` |
-    | `VITE_API_URL` | `https://fitness-api.bravegrass-9195be51.westus.azurecontainerapps.io/api/v1` (Get this from `az containerapp show ...` or the portal) |
+    | `VITE_API_URL` | `https://fitness-api.xxxxxxxx-XXXXXXXXX.westus.azurecontainerapps.io/api/v1` (Get this from `az containerapp show ...` or the portal) |
 
 ## 8. Deploy Backend Containers (Initial Setup)
 **Run this AFTER your GitHub Action has built and pushed the images to ACR.**
@@ -246,7 +246,7 @@ $rabbitFqdn = az containerapp show `
   --output tsv
 
 Write-Host "RabbitMQ FQDN: $rabbitFqdn"
-# Example output: fitness-rabbitmq.internal.bravegrass-9195be51.westus.azurecontainerapps.io
+# Example output: fitness-rabbitmq.internal.xxxxxxxxx-xxxxxxxx.westus.azurecontainerapps.io
 ```
 
 > [!WARNING]
@@ -373,7 +373,7 @@ az containerapp exec `
 Create `src/FitnessTracker.Web/.env.production` with your API URL:
 
 ```bash
-VITE_API_URL=https://fitness-api.bravegrass-XXXXXX.westus.azurecontainerapps.io/api/v1
+VITE_API_URL=https://fitness-api.xxxxxxxxx-XXXXXX.westus.azurecontainerapps.io/api/v1
 ```
 
 **Get the API URL:**

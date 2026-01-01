@@ -1,6 +1,6 @@
-# FitnessTracker - Azure Deployment Guide
+# FitnessTracker 
 
-> A comprehensive fitness tracking application with progress photo analysis, built with .NET 10, React, Python, and Azure services.
+> **Cloud-native fitness tracking application** featuring AI-powered progress photo analysis. Built with a **microservices architecture** using **.NET 10 Web API**, **React 18**, and **Python ML services**, deployed on **Azure Container Apps** with **PostgreSQL** and **Blob Storage**. Implements **secure photo streaming**, **asynchronous message processing** (RabbitMQ), **JWT authentication**, **rate limiting**, and **CI/CD pipelines** with GitHub Actions.
 
 ## 🏗️ Architecture
 
@@ -10,24 +10,28 @@ graph TB
         SWA[Azure Static Web App<br/>React + Vite]
     end
     
-    subgraph "Azure Container Apps Environment"
-        API[.NET 10 API<br/>fitness-api]
+    subgraph "Azure Container Apps Environment (VNet)"
+        API[.NET 10 API<br/>fitness-api<br/>Secure Photo Proxy]
         PROC[Python Processor<br/>fitness-photo-processor]
         RMQ[RabbitMQ<br/>fitness-rabbitmq]
     end
     
-    subgraph "Data Layer"
+    subgraph "Data Layer (Private)"
         DB[(PostgreSQL<br/>fitness-db)]
-        BLOB[Azure Blob Storage<br/>progress-photos]
+        BLOB[Azure Blob Storage<br/>progress-photos<br/>VNet-only access]
     end
     
-    SWA -->|HTTPS| API
-    API -->|Photos| BLOB
+    SWA -->|API Requests| API
+    SWA -.->|No Direct Access| BLOB
+    API <-->|Stream Photos| BLOB
     API -->|Queue Messages| RMQ
     API -->|Data| DB
     RMQ -->|Process Photos| PROC
-    PROC -->|Photos| BLOB
+    PROC <-->|Upload/Download| BLOB
     PROC -->|Update Status| DB
+    
+    style BLOB fill:#f9f,stroke:#333,stroke-width:2px
+    style API fill:#bbf,stroke:#333,stroke-width:2px
 ```
 
 ## ✨ Features
@@ -38,17 +42,44 @@ graph TB
 - **Pose Detection** - MediaPipe-based bodybuilding pose classification
 - **Photo Processing** - Automatic cropping, thumbnails, and landmark visualization
 - **API Versioning** - URL-based versioning (`/api/v1/...`)
-- **Rate Limiting** - Built-in protection against abuse
+- **Rate Limiting** - Built-in .net rate limiting middleware
+
+## 📸 Photo Processing Flow
+
+### Secure Photo Architecture
+
+1. **Upload** → Frontend uploads photo to API (`POST /api/v1/photos`)
+2. **Store** → API saves original to blob storage (VNet-only access)
+3. **Queue** → API queues photo for processing via RabbitMQ
+4. **Process** → Python processor:
+   - Downloads from blob storage
+   - Generates thumbnail and cropped versions
+   - Detects pose using MediaPipe AI
+   - Uploads processed images back to blob
+   - Updates database with results
+5. **Display** → Frontend requests photos via secure API proxy:
+   - `GET /api/v1/photos/{id}/image?type=thumbnail` (grid view)
+   - `GET /api/v1/photos/{id}/image?type=original` (full view)
+   - API verifies user owns photo before streaming from blob storage
+
+**Security:** Browser never accesses blob storage directly. All requests authenticated and authorized by API.
 
 ## 🚀 Quick Start (Local Development)
 
 ### Prerequisites
-- .NET 10 SDK
-- Node.js 18+
-- Python 3.11+
-- PostgreSQL 14+
-- RabbitMQ
-- Docker (optional)
+
+Install the following tools for local development:
+
+- **[.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)** - Backend API runtime
+- **[Node.js 18+](https://nodejs.org/)** - Frontend development server
+- **[Python 3.11+](https://www.python.org/downloads/)** - Photo processor
+- **[PostgreSQL 14+](https://www.postgresql.org/download/)** - Database
+  - Windows: Use installer or `winget install PostgreSQL.PostgreSQL`
+  - macOS: `brew install postgresql@14`
+  - Linux: `sudo apt install postgresql-14`
+- **[Docker Desktop](https://www.docker.com/products/docker-desktop/)** - For RabbitMQ and photo processor
+  - Required for running RabbitMQ message broker
+  - Optional for photo processor (simplifies Python environment)
 
 ### 1. Clone Repository
 ```bash
@@ -56,7 +87,16 @@ git clone https://github.com/YOUR_USERNAME/FitnessTracker.git
 cd FitnessTracker
 ```
 
-### 2. Setup Database
+### 2. Setup RabbitMQ (Docker)
+```bash
+# Start RabbitMQ container
+docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:management
+
+# Optional: Access RabbitMQ management UI at http://localhost:15672
+# Default credentials: guest/guest
+```
+
+### 3. Setup Database
 ```bash
 # Create database
 createdb fitness_tracker
@@ -248,9 +288,9 @@ FitnessTracker/
 - **Container Apps** - API & Python processor hosting
 - **Static Web Apps** - Frontend hosting
 - **PostgreSQL Flexible Server** - Database
-- **Blob Storage** - Photo storage with SAS tokens
+- **Blob Storage** - Private photo storage (VNet-only access)
 - **Container Registry** - Docker image storage
-- **Virtual Network** - Secure networking
+- **Virtual Network** - Secure private networking
 
 ## 🐛 Troubleshooting
 
@@ -291,8 +331,13 @@ See [`docs/Azure-Deployment-Walkthrough.md`](docs/Azure-Deployment-Walkthrough.m
 - **CORS**: Configured for specific frontend origin
 - **Rate Limiting**: 100 requests/minute per client
 - **Secure Cookies**: SameSite=None with Secure flag for cross-domain
-- **Private Networking**: Database and RabbitMQ in VNet
-- **Blob Storage**: Private containers with time-limited SAS URLs
+- **Private Networking**: Database, RabbitMQ, and Blob Storage in VNet
+- **Secure Photo Access**: API proxy with ownership verification
+  - No direct blob storage URLs exposed to frontend
+  - Photos served through `/api/v1/photos/{id}/image` endpoint
+  - Authorization check on every image request
+  - 24-hour browser caching for performance
+  - VNet-only blob storage access ("selected networks" mode)
 
 ## 🤝 Contributing
 
