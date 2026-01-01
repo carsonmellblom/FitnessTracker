@@ -2,6 +2,21 @@
 
 > **Cloud-native fitness tracking application** featuring AI-powered progress photo analysis. Built with a **microservices architecture** using **.NET 10 Web API**, **React 18**, and **Python ML services**, deployed on **Azure Container Apps** with **PostgreSQL** and **Blob Storage**. Implements **secure photo streaming**, **asynchronous message processing** (RabbitMQ), **JWT authentication**, **rate limiting**, and **CI/CD pipelines** with GitHub Actions.
 
+---
+
+> [!IMPORTANT]
+> **Portfolio/Learning Project**
+> 
+> This application is a **demonstration project** built to showcase cloud-native architecture, microservices, and modern development practices. While it implements production-grade patterns (authentication, rate limiting, secure storage), it is **not intended for production deployment** without additional hardening, security audits, and testing.
+> 
+> Use this project as a reference for:
+> - Cloud architecture design patterns
+> - Microservices communication (REST + message queues)
+> - Secure photo handling and streaming
+> - CI/CD pipeline implementation
+> - Azure services integration
+
+
 ## 🏗️ Architecture
 
 ```mermaid
@@ -349,7 +364,9 @@ See [`docs/Azure-Deployment-Walkthrough.md`](docs/Azure-Deployment-Walkthrough.m
 
 ## 📝 License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+**MIT License Summary:** This software is provided "as-is" without warranty of any kind. You are free to use, modify, and distribute this code with proper attribution.
 
 ## 🙏 Acknowledgments
 
