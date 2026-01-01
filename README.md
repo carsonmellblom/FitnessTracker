@@ -30,8 +30,8 @@ graph TB
     PROC <-->|Upload/Download| BLOB
     PROC -->|Update Status| DB
     
-    style BLOB fill:#f9f,stroke:#333,stroke-width:2px
-    style API fill:#bbf,stroke:#333,stroke-width:2px
+    style BLOB fill:#c41e3a,stroke:#fff,stroke-width:3px,color:#fff
+    style API fill:#1e4d8b,stroke:#fff,stroke-width:3px,color:#fff
 ```
 
 ## ✨ Features
