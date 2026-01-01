@@ -1,7 +1,7 @@
 namespace FitnessTracker.API.DTOs;
 
-public class RefreshTokenDto
+public record RefreshTokenDto
 {
-    public string AccessToken { get; set; } = string.Empty;
-    public string RefreshToken { get; set; } = string.Empty;
+    public required string AccessToken { get; init; }
+    public required string RefreshToken { get; init; }
 }
