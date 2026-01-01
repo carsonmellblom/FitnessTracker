@@ -13,6 +13,11 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 using FitnessTracker.API.Middleware;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using RabbitMQ.Client;
+
+
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -157,6 +162,22 @@ builder.Services.AddRateLimiter(options =>
     });
 });
 
+builder.Services.AddHealthChecks()
+    .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection")!)
+    .AddRabbitMQ(async sp =>
+    {
+        var config = sp.GetRequiredService<IConfiguration>();
+        var factory = new ConnectionFactory
+        {
+            HostName = config["RabbitMQ:Host"]!,
+            Port = int.Parse(config["RabbitMQ:Port"]!),
+            UserName = config["RabbitMQ:Username"]!,
+            Password = config["RabbitMQ:Password"]!
+        };
+        return await factory.CreateConnectionAsync();
+    }, name: "RabbitMQ");
+
+
 var app = builder.Build();
 
 app.UseExceptionHandler();
@@ -204,6 +225,27 @@ app.UseStaticFiles(new StaticFileOptions
 });
 
 app.MapControllers().RequireRateLimiting("fixed");
+
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    ResponseWriter = async (context, report) =>
+    {
+        context.Response.ContentType = "application/json";
+        var response = new
+        {
+            status = report.Status.ToString(),
+            checks = report.Entries.Select(e => new
+            {
+                check = e.Key,
+                status = e.Value.Status.ToString(),
+                description = e.Value.Description
+            }),
+            totalDuration = report.TotalDuration
+        };
+        await context.Response.WriteAsJsonAsync(response);
+    }
+});
+
 
 // Ensure database is created and migrations are applied
 using (var scope = app.Services.CreateScope())
