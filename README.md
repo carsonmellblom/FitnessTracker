@@ -355,9 +355,7 @@ See [`docs/Azure-Deployment-Walkthrough.md`](docs/Azure-Deployment-Walkthrough.m
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-**MIT License Summary:** This software is provided "as-is" without warranty of any kind. You are free to use, modify, and distribute this code with proper attribution.
+This project is licensed under the Unlicense License - see the [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
