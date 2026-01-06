@@ -345,24 +345,9 @@ See [`docs/Azure-Deployment-Walkthrough.md`](docs/Azure-Deployment-Walkthrough.m
   - 24-hour browser caching for performance
   - VNet-only blob storage access ("selected networks" mode)
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📝 License
-
-This project is licensed under the Unlicense License - see the [LICENSE](LICENSE) file for details.
-
 ## 🙏 Acknowledgments
 
 - [MediaPipe](https://github.com/google-ai-edge/mediapipe) - Pose detection
 - [Material-UI](https://mui.com/) - React components
 - [RabbitMQ](https://www.rabbitmq.com/) - Message broker
 
----
-
-**Need Help?** Check the [troubleshooting guide](docs/Azure-Deployment-Walkthrough.md#troubleshooting--production-configuration) or open an issue.
