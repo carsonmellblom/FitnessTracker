@@ -298,7 +298,6 @@ FitnessTracker/
 - **Container Registry** - Docker image storage
 - **Virtual Network** - Secure private networking
 
-## 🐛 Troubleshooting
 
 ### Common Issues
 
